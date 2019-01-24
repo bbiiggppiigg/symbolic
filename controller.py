@@ -1,5 +1,5 @@
 from macros.actions import OutputActionList
-from macros.binding import InputBinding, Packet
+from macros.binding import InputBinding
 from macros.bounded_expression import Bool
 from macros.exceptions import UnsatisfiableActionException
 from macros.inputs import input_sequence
@@ -8,11 +8,11 @@ from macros.instances import invariants, reactions, precedences, inv
 
 class ActivatedPrecedences(object):
 
-    def __init__(self, precedences):
+    def __init__(self, precedes):
         self.records = dict()
-        self.precedences = precedences
+        self.precedences = precedes
 
-    def record(self, pkt: Packet, port_id: int):
+    def record(self, pkt, port_id):
         for prec in self.precedences:
             conf = prec.get_configuration(pkt, port_id)
             if prec.happen(conf, pkt, port_id):
@@ -20,7 +20,7 @@ class ActivatedPrecedences(object):
                     self.records[prec] = set()
                 self.records[prec].add(conf)
 
-    def get_assignments(self, input_binding: InputBinding, pkt, port_id):
+    def get_assignments(self, input_binding, pkt, port_id):
         ret = []
         for prec in self.precedences:
             conf = prec.get_configuration(pkt, port_id)
@@ -31,11 +31,11 @@ class ActivatedPrecedences(object):
 
 class ActivatedReactions(object):
 
-    def __init__(self, reactions):
+    def __init__(self, reacts):
         self.record = dict()
-        self.reactions = reactions
+        self.reactions = reacts
 
-    def clear(self, input_binding: InputBinding):
+    def clear(self, input_binding):
         for react, confs in self.record.items():
             new_confs = []
             for conf in confs:
@@ -44,7 +44,7 @@ class ActivatedReactions(object):
                 new_confs.append(conf)
             self.record[react] = new_confs
 
-    def activate(self, input_binding: InputBinding, pkt: Packet, port_id: int):
+    def activate(self, input_binding, pkt, port_id):
         for react in self.reactions:
             conf = react.get_configuration(pkt, port_id)
             if react.start.apply_conf(conf).apply(input_binding):
@@ -52,7 +52,7 @@ class ActivatedReactions(object):
                     self.record[react] = list()
                     self.record[react].append(conf)
 
-    def get_assignments(self, input_binding: InputBinding):
+    def get_assignments(self, input_binding):
         ret = []
         for react, confs in self.record.items():
             for conf in confs:

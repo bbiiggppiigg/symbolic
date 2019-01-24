@@ -12,18 +12,18 @@ from macros.variables import Variable, Output
 
 
 class BoundedExpr(object):
-    def apply(self, pkt: InputBinding):
+    def apply(self, pkt              ):
         raise NotImplementedError
 
 
 class BoundedPredicate(BoundedExpr):
-    def apply(self, pkt: InputBinding):
+    def apply(self, pkt              ):
         raise NotImplementedError;
 
 
 class BoundedLEQ(BoundedPredicate):
 
-    def __init__(self, left: Variable, right):
+    def __init__(self, left          , right):
         self.left = left
         self.right = right
 
@@ -37,7 +37,7 @@ class BoundedLEQ(BoundedPredicate):
     def __repr__(self):
         return "(%s  >  %s)" % (self.left.__repr__(), self.right.__repr__())
 
-    def apply(self, pkt: InputBinding):
+    def apply(self, pkt              ):
         left = self.left
         right = self.right
         if left in pkt.binding.keys():
@@ -55,7 +55,7 @@ class BoundedLEQ(BoundedPredicate):
 
 class BoundedGEQ(BoundedPredicate):
 
-    def __init__(self, left: Variable, right) -> None:
+    def __init__(self, left          , right)        :
         self.left = left
         self.right = right
 
@@ -69,7 +69,7 @@ class BoundedGEQ(BoundedPredicate):
     def __repr__(self):
         return "(%s  >  %s)" % (self.left.__repr__(), self.right.__repr__())
 
-    def apply(self, pkt: InputBinding):
+    def apply(self, pkt              ):
         left = self.left
         right = self.right
         if left in pkt.binding.keys():
@@ -87,7 +87,7 @@ class BoundedGEQ(BoundedPredicate):
 
 class BoundedGT(BoundedPredicate):
 
-    def __init__(self, left: Variable, right) -> None:
+    def __init__(self, left          , right)        :
         self.left = left
         self.right = right
 
@@ -101,7 +101,7 @@ class BoundedGT(BoundedPredicate):
     def __repr__(self):
         return "(%s  >  %s)" % (self.left.__repr__(), self.right.__repr__())
 
-    def apply(self, pkt: InputBinding):
+    def apply(self, pkt              ):
         left = self.left
         right = self.right
         if left in pkt.binding.keys():
@@ -121,7 +121,7 @@ class BoundedGT(BoundedPredicate):
 
 class BoundedLT(BoundedPredicate):
 
-    def __init__(self, left: Variable, right) -> None:
+    def __init__(self, left          , right)        :
         self.left = left
         self.right = right
 
@@ -132,7 +132,7 @@ class BoundedLT(BoundedPredicate):
             return [Range(self.right.min_value, self.right.get_value() - 1)]
         raise Exception("Shouldn't Reach")
 
-    def apply(self, pkt: InputBinding):
+    def apply(self, pkt              ):
         left = self.left
         right = self.right
         if left in pkt.binding.keys():
@@ -152,7 +152,7 @@ class BoundedLT(BoundedPredicate):
 
 class BoundedEQ(BoundedPredicate):
 
-    def __init__(self, left, right) -> None:
+    def __init__(self, left, right)        :
         self.left = left
         self.right = right
 
@@ -162,7 +162,7 @@ class BoundedEQ(BoundedPredicate):
     def get_range(self):
         return [Range(self.right.get_value(), self.right.get_value())]
 
-    def apply(self, pkt: InputBinding):
+    def apply(self, pkt              ):
 
         left = self.left
         right = self.right
@@ -188,7 +188,7 @@ class BoundedEQ(BoundedPredicate):
 
 class BoundedNEQ(BoundedPredicate):
 
-    def __init__(self, left, right) -> None:
+    def __init__(self, left, right)        :
         self.left = left
         self.right = right
 
@@ -196,7 +196,7 @@ class BoundedNEQ(BoundedPredicate):
         return [Range(self.right.min_value, self.right.get_value() - 1),
                 Range(self.right.get_value() + 1, self.right.max_value)]
 
-    def apply(self, pkt: InputBinding):
+    def apply(self, pkt              ):
         left = self.left
         right = self.right
         if left in pkt.binding.keys():
@@ -227,10 +227,10 @@ class Bool(object):
 
 class BoundedMatch(BoundedExpr):
 
-    def __init__(self, expr_list) -> None:
+    def __init__(self, expr_list)        :
         self.expr_list = expr_list
 
-    def apply(self, pkt: InputBinding) -> Bool:
+    def apply(self, pkt              )        :
         ret = True
         cond_list = list(map(lambda x: x.apply(pkt), self.expr_list))
         for cond in cond_list:
@@ -250,15 +250,15 @@ class BoundedMatch(BoundedExpr):
 
 class BoundedAction(BoundedExpr):
 
-    def __init__(self, assign_list) -> None:
+    def __init__(self, assign_list)        :
         self.assign_list = assign_list
 
     def __repr__(self):
         return "".join(map(lambda x: x.__repr__(), self.assign_list))
 
-    def apply(self, pkt: InputBinding) -> "OutputAssignments":
+    def apply(self, pkt              )                       :
         try:
-            ret: List[Union[OutputAssignment, bool]] = list(
+            ret                                      = list(
                 map(lambda x: x.apply(pkt), self.assign_list)
             )
             return OutputAssignments(ret)
@@ -268,13 +268,13 @@ class BoundedAction(BoundedExpr):
 
 class BoundedGuard(BoundedExpr):
 
-    def __init__(self, assign_list) -> None:
+    def __init__(self, assign_list)        :
         self.assign_list = assign_list
 
     def __repr__(self):
         return "".join(map(lambda x: x.__repr__(), self.assign_list))
 
-    def apply(self, pkt: InputBinding):
+    def apply(self, pkt              ):
         try:
             ret = list(
                 map(lambda x: x.apply(pkt), self.assign_list)
@@ -289,7 +289,7 @@ class BoundedActionList(BoundedExpr):
     def __init__(self, action_list):
         self.action_list = action_list
 
-    def apply(self, pkt: InputBinding) -> "OutputActionList":
+    def apply(self, pkt              )                      :
         ret = []
         for action in self.action_list:
             try:
@@ -306,14 +306,14 @@ class BoundedActionList(BoundedExpr):
 
 
 class BoundedImplies(BoundedExpr):
-    left: BoundedMatch
-    right: BoundedActionList
+    #eft: BoundedMatch
+    #ight: BoundedActionList
 
-    def __init__(self, left: BoundedMatch, right: BoundedActionList):
+    def __init__(self, left              , right                   ):
         self.left = left
         self.right = right
 
-    def apply(self, pkt: InputBinding):
+    def apply(self, pkt              ):
         if self.left.apply(pkt):
             return self.right.apply(pkt)
         return Bool(True)

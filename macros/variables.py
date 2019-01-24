@@ -20,7 +20,7 @@ class Input(Variable):
     builtin = {"ip4Src": IPAddr, "ip4Dst": IPAddr, "ethType": EthType, "ethSrc": Mac, "ethDst": Mac, "ipProto": IPProto,
                "port_id": Port}
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name     )        :
         if name not in self.builtin:
             raise UnexpectedInputException("expecting input, get %s" % name)
         super().__init__(name)
@@ -36,7 +36,7 @@ class Output(Variable):
     builtin = {"ip4Src_out": IPAddr, "ip4Dst_out": IPAddr, "ethSrc_out": Mac
         , "ethDst_out": Mac, "ipProto_out": IPProto, "port_id_out": Port}
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name     )        :
         if name not in self.builtin:
             raise UnexpectedOutputException("expecting output, get %s" % name)
         super().__init__(name)
@@ -51,7 +51,7 @@ class Output(Variable):
 class FreeVariable(Variable):
     builtin = {"IPAddr": IPAddr, "Mac": Mac, "IPProto": IPProto, "Port": Port}
 
-    def __init__(self, name: str, type_str: str) -> None:
+    def __init__(self, name     , type_str     )        :
         if name in Input.builtin.keys() or name in Output.builtin.keys():
             raise DuplicateNameException("expecting free variable, get %s" % name)
         super().__init__(name)

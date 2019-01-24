@@ -33,7 +33,7 @@ class Range(object):
 # Port = [[1,3] | [4,6] | [7,9]  ]
 
 class OutputAssignment(object):
-    def __init__(self, left: Output, right):
+    def __init__(self, left        , right):
         if len(right) == 0:
             raise UnsatisfiableAssignmentException
         self.left = left
@@ -86,8 +86,8 @@ class OutputAssignment(object):
 
 class OutputAssignments(object):
     default_list = dict()
-    key: str
-    value: Variable
+    #ey: str
+    #alue: Variable
 
 
     # for key, value in Input.builtin.items():
@@ -105,8 +105,8 @@ class OutputAssignments(object):
                 # print("Unsatisfiable Output Assignment")
                 raise UnsatisfiableAssignmentException
 
-        assignment_list: List[OutputAssignment] = list(filter(lambda x: type(x) != bool, assignment_list))
-        res: Dict[Output, OutputAssignment] = dict()
+        assignment_list                         = list(filter(lambda x: type(x) != bool, assignment_list))
+        res                                 = dict()
         # Collapsing Output Assignment in the same List
         for assignment in assignment_list:
             try:
@@ -124,7 +124,7 @@ class OutputAssignments(object):
         Assume no duplicate range for same input
     """
 
-    def __mul__(self, other) -> "OutputAssignments":
+    def __mul__(self, other)                       :
         ret = dict()
 
         try:

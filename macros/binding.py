@@ -20,7 +20,7 @@ class Packet(object):
     def get_sample(cls):
         return Packet("c6:91:00:30:db:c7", "ff:ff:ff:ff:ff:ff", 2054, "10.0.0.1", "10.0.0.2", 1)
 
-    def __eq__(self, other: "Packet"):
+    def __eq__(self, other          ):
         return (self.ethSrc == other.ethSrc and self.ethDst == other.ethDst
                 and self.ethType == other.ethType and self.ip4Src == other.ip4Src
                 and self.ip4Dst == other.ip4Dst and self.ipProto == other.ipProto
@@ -34,7 +34,7 @@ class Packet(object):
 
 class InputBinding(object):
 
-    def __init__(self, pkt, port_id: int):
+    def __init__(self, pkt, port_id     ):
         self.binding = dict()
         self.binding[Input('ethSrc')] = Mac(pkt.ethSrc)
         self.binding[Input('ethDst')] = Mac(pkt.ethDst)
@@ -56,7 +56,7 @@ class InputBinding(object):
 
 class FVS(object):
 
-    def __init__(self, fv: FreeVariable = None, variable: Variable = None):
+    def __init__(self, fv               = None, variable           = None):
         self.binding = dict()
         if fv is not None and variable is not None:
             self.binding[fv] = variable
@@ -91,7 +91,7 @@ class FVS(object):
 
 class Configuration(object):
 
-    def __init__(self, binding: FVS, pkt: InputBinding):
+    def __init__(self, binding     , pkt              ):
         self.binding = dict()
 
         for key, value in binding.binding.items():

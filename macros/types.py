@@ -39,7 +39,7 @@ class Mac(Value):
             res += int(byte, 16)
         return res
 
-    def __init__(self, mac_str: str):
+    def __init__(self, mac_str     ):
         self.mac_str = mac_str
         self.value = self.to_int()
         if self.value < Mac.min_value or self.value > Mac.max_value:
@@ -56,7 +56,7 @@ class Port(Value):
     min_value = 1
     max_value = 1024
 
-    def __init__(self, port: int):
+    def __init__(self, port     ):
         self.value = port
         if self.value < Port.min_value or self.value > Port.max_value:
             raise Exception("Invalid Port Value : %d " % port)
@@ -72,7 +72,7 @@ class Vlan(Value):
     min_value = 1
     max_value = 4096
 
-    def __init__(self, vlan: int):
+    def __init__(self, vlan     ):
         self.value = vlan
         if self.value < Vlan.min_value or self.value > Vlan.max_value:
             raise Exception("Invalid Vlan Value %d " % vlan)
@@ -88,7 +88,7 @@ class PriorityCode(Value):
     min_value = 1
     max_value = 8
 
-    def __init__(self, p: int):
+    def __init__(self, p     ):
         self.value = p
         if self.value < PriorityCode.min_value or self.value > PriorityCode.max_value:
             raise Exception("Invalid Priority Code %d" % p)
@@ -104,7 +104,7 @@ class EthType(Value):
     min_value = -2147483648
     max_value = 2147483647
 
-    def __init__(self, t: int):
+    def __init__(self, t     ):
         self.value = t
         if self.value < EthType.min_value or self.value > EthType.max_value:
             raise Exception("Invalid Eth Type %d " % t)
@@ -120,7 +120,7 @@ class IPProto(Value):
     min_value = 0
     max_value = 255
 
-    def __init__(self, p: int):
+    def __init__(self, p     ):
         self.value = p
         if self.value < IPProto.min_value or self.value > IPProto.max_value:
             raise Exception("Invalid IPProto %d " % p)
@@ -144,7 +144,7 @@ class IPAddr(Value):
             res += int(byte)
         return res
 
-    def __init__(self, ip_str: str):
+    def __init__(self, ip_str     ):
         self.ip_str = ip_str
         self.value = self.to_int()
         if self.value < IPAddr.min_value or self.value > IPAddr.max_value:
@@ -161,7 +161,7 @@ class TCPPort(Value):
     min_value = 0
     max_value = 65535
 
-    def __init__(self, port: int):
+    def __init__(self, port     ):
         self.value = port
         if self.value < TCPPort.min_value or self.value > TCPPort.max_value:
             raise Exception("Invalid TCP Port %d " % port)
