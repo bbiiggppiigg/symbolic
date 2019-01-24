@@ -1,7 +1,5 @@
-from typing import Union
-from macros.expression import Match, Implies, Action, ActionList,Guard
 from macros.binding import InputBinding, Configuration, Packet
-from macros.bounded_expression import OutputActionList, Bool
+from macros.expression import Match, Implies, Guard
 
 
 class Macro(object):
@@ -12,13 +10,13 @@ class Macro(object):
 
 
 class Invariant(Macro):
-    def __init__(self, expr: Union[Match, Implies, ActionList]):
+    def __init__(self, expr):
         self.expr = expr
         self.binding = self.expr.collect_binding()
 
     def apply(self, pkt: Packet, port_id: int):
         conf = self.get_configuration(pkt, port_id)
-        ret: Union[OutputActionList, Bool] = self.expr.apply_conf(conf).apply(InputBinding(pkt, port_id))
+        ret = self.expr.apply_conf(conf).apply(InputBinding(pkt, port_id))
 
         return ret
 

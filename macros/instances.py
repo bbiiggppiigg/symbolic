@@ -1,12 +1,11 @@
-from typing import List
 from macros.expression import Implies, Match, ActionList, EQ, GT, NEQ, Action
 from macros.types import IPAddr, Port
 from macros.variables import Input, Output, FreeVariable
 from macros.macro import Invariant, Precedence, Reaction
 
-invariants: List[Invariant] = list()
-precedences: List[Precedence] = list()
-reactions: List[Reaction] = list()
+invariants = list()
+precedences = list()
+reactions = list()
 inv0 = Invariant(
     ActionList(
         [

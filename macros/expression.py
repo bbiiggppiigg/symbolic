@@ -1,9 +1,8 @@
-from typing import Union, List
-from macros.variables import Variable, Input, FreeVariable
-from macros.types import Value
+
 from macros.binding import FVS, Configuration
 from macros.bounded_expression import BoundedExpr, BoundedImplies, BoundedAction, BoundedMatch, \
     BoundedEQ, BoundedGT, BoundedLT, BoundedNEQ, BoundedActionList, BoundedGuard, BoundedGEQ, BoundedLEQ
+from macros.variables import Variable, Input, FreeVariable
 
 """
     What should apply returns ?
@@ -34,7 +33,7 @@ class Predicate(Expr):
 
 class LEQ(Predicate):
 
-    def __init__(self, left: Variable, right: Union[Variable, Value]) -> None:
+    def __init__(self, left: Variable, right) -> None:
         self.left = left
         self.right = right
 
@@ -53,7 +52,7 @@ class LEQ(Predicate):
 
 class GEQ(Predicate):
 
-    def __init__(self, left: Variable, right: Union[Variable, Value]) -> None:
+    def __init__(self, left: Variable, right) -> None:
         self.left = left
         self.right = right
 
@@ -72,7 +71,7 @@ class GEQ(Predicate):
 
 class GT(Predicate):
 
-    def __init__(self, left: Variable, right: Union[Variable, Value]) -> None:
+    def __init__(self, left: Variable, right) -> None:
         self.left = left
         self.right = right
 
@@ -94,7 +93,7 @@ class GT(Predicate):
 
 class LT(Predicate):
 
-    def __init__(self, left: Variable, right: Union[Value, Variable]) -> None:
+    def __init__(self, left: Variable, right) -> None:
         self.left = left
         self.right = right
 
@@ -113,7 +112,7 @@ class LT(Predicate):
 
 class EQ(Predicate):
 
-    def __init__(self, left: Union[Variable, Value], right) -> None:
+    def __init__(self, left, right) -> None:
         self.left = left
         self.right = right
 
@@ -144,7 +143,7 @@ class EQ(Predicate):
 
 class NEQ(Predicate):
 
-    def __init__(self, left: Union[Variable, Value], right) -> None:
+    def __init__(self, left, right) -> None:
         self.left = left
         self.right = right
 
@@ -172,7 +171,7 @@ class NEQ(Predicate):
 
 class Match(Expr):
 
-    def __init__(self, expr_list: List[Predicate]) -> None:
+    def __init__(self, expr_list) -> None:
         self.expr_list = expr_list
 
     def collect_binding(self):
@@ -195,7 +194,7 @@ class Match(Expr):
 
 
 class Guard(Expr):
-    def __init__(self, assign_list: List[Predicate]) -> None:
+    def __init__(self, assign_list) -> None:
         self.assign_list = assign_list
 
     def collect_binding(self):
@@ -219,7 +218,7 @@ class Guard(Expr):
 
 class Action(Expr):
 
-    def __init__(self, assign_list: List[Predicate]) -> None:
+    def __init__(self, assign_list) -> None:
         self.assign_list = assign_list
 
     def collect_binding(self):
@@ -239,7 +238,7 @@ class Action(Expr):
 
 class ActionList(Expr):
 
-    def __init__(self, action_list: List[Action]):
+    def __init__(self, action_list):
         self.action_list = action_list
 
     def collect_binding(self):

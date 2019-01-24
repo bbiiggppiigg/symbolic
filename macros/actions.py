@@ -1,6 +1,6 @@
-from typing import List, Union, Dict
-from macros.variables import Output, Variable
+
 from macros.exceptions import InvalidRangeException, UnsatisfiableAssignmentException, UnsatisfiableActionException
+from macros.variables import Output, Variable
 
 
 class Range(object):
@@ -33,7 +33,7 @@ class Range(object):
 # Port = [[1,3] | [4,6] | [7,9]  ]
 
 class OutputAssignment(object):
-    def __init__(self, left: Output, right: List[Range]):
+    def __init__(self, left: Output, right):
         if len(right) == 0:
             raise UnsatisfiableAssignmentException
         self.left = left
@@ -88,12 +88,12 @@ class OutputAssignments(object):
     default_list = dict()
     key: str
     value: Variable
-    assignment_dict: Dict[Output, OutputAssignment]
+
 
     # for key, value in Input.builtin.items():
     #    default_list[key] = Range(value.min_value, value.max_value, False)
 
-    def __init__(self, assignment_list: List[Union[OutputAssignment, bool]]):
+    def __init__(self, assignment_list):
 
         satisfiable = True
         print("assignment lists = ", assignment_list)
@@ -157,7 +157,7 @@ pass
 
 class OutputActionList(object):
 
-    def __init__(self, assignment_list: List[OutputAssignments], unsat=False):
+    def __init__(self, assignment_list, unsat=False):
         self.assignment_list = assignment_list
         self.unsat = unsat
 

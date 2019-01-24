@@ -1,17 +1,15 @@
-from typing import List, Dict
-from macros.macro import Reaction, Precedence
-from macros.binding import Configuration, InputBinding, Packet
-from macros.bounded_expression import Bool
 from macros.actions import OutputActionList
-from macros.instances import invariants, reactions, precedences, inv, inv0
-from macros.inputs import input_sequence
+from macros.binding import InputBinding, Packet
+from macros.bounded_expression import Bool
 from macros.exceptions import UnsatisfiableActionException
+from macros.inputs import input_sequence
+from macros.instances import invariants, reactions, precedences, inv
 
 
 class ActivatedPrecedences(object):
 
-    def __init__(self, precedences: List[Precedence]):
-        self.records: Dict[Precedence, List[Configuration]] = dict()
+    def __init__(self, precedences):
+        self.records = dict()
         self.precedences = precedences
 
     def record(self, pkt: Packet, port_id: int):
@@ -22,7 +20,7 @@ class ActivatedPrecedences(object):
                     self.records[prec] = set()
                 self.records[prec].add(conf)
 
-    def get_assignments(self, input_binding: InputBinding, pkt: Packet, port_id: int):
+    def get_assignments(self, input_binding: InputBinding, pkt, port_id):
         ret = []
         for prec in self.precedences:
             conf = prec.get_configuration(pkt, port_id)
@@ -33,8 +31,8 @@ class ActivatedPrecedences(object):
 
 class ActivatedReactions(object):
 
-    def __init__(self, reactions: List[Reaction]):
-        self.record: Dict[Reaction, List[Configuration]] = dict()
+    def __init__(self, reactions):
+        self.record = dict()
         self.reactions = reactions
 
     def clear(self, input_binding: InputBinding):
