@@ -1,14 +1,12 @@
+import frenetic
+from frenetic.packet import *
+from frenetic.syntax import *
+
 from macros.actions import OutputActionList
 from macros.binding import InputBinding
 from macros.bounded_expression import Bool
 from macros.exceptions import UnsatisfiableActionException
 from macros.instances import invariants, reactions, precedences
-
-import frenetic
-from frenetic.syntax import *
-from frenetic.packet import *
-
-
 
 
 class ActivatedPrecedences(object):
@@ -73,6 +71,7 @@ class ActivatedReactions(object):
 ActiveReactions = ActivatedReactions(reactions)
 ActivePrecedences = ActivatedPrecedences(precedences)
 
+
 class RepeaterApp(frenetic.App):
 
     def __init__(self):
@@ -83,22 +82,22 @@ class RepeaterApp(frenetic.App):
             dpid = swithces.keys()[0]
 
             self.update(id >> SendToController("repeater_app"))
+
         self.current_switches(callback=handle_current_switches)
 
-    def packet_in(self,dpid,port_id,payload):
-        actions = SetPort([1,2,3,4,5])
-        pkt = Packet.from_payload(dpid,port_id,payload)
-        input_binding = InputBinding(pkt,port_id)
-        #print input_binding
+    def packet_in(self, dpid, port_id, payload):
+        actions = SetPort([1, 2, 3, 4, 5])
+        pkt = Packet.from_payload(dpid, port_id, payload)
+        input_binding = InputBinding(pkt, port_id)
+        # print input_binding
         ActivePrecedences.record(pkt, port_id)
         ActiveReactions.clear(input_binding)
-        
-        
+
         OA = OutputActionList([])
-        
+
         for invariant in invariants:
             conf = invariant.get_configuration(pkt, port_id)
-            #print (invariant.expr.apply_conf(conf))
+            # print (invariant.expr.apply_conf(conf))
             rhs = invariant.expr.apply_conf(conf).apply(input_binding)
             if type(rhs) == Bool:
                 if rhs.value:
@@ -106,9 +105,9 @@ class RepeaterApp(frenetic.App):
                 else:
                     raise Exception("Violation!")  # TODO : Test
             else:
-                #print("before update oa = ", OA)
+                # print("before update oa = ", OA)
                 OA = OA * rhs
-                #print("after update oa = ", OA)
+                # print("after update oa = ", OA)
 
         try:
             oas = ActiveReactions.get_assignments(input_binding)
@@ -129,8 +128,8 @@ class RepeaterApp(frenetic.App):
         ActiveReactions.activate(input_binding, pkt, port_id)
         print("final oa = ", OA)
 
-        self.pkt_out(dpid,payload,actions)
+        self.pkt_out(dpid, payload, actions)
+
+
 app = RepeaterApp()
 app.start_event_loop()
-
-

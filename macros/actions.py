@@ -1,6 +1,4 @@
-
 from macros.exceptions import InvalidRangeException, UnsatisfiableAssignmentException, UnsatisfiableActionException
-from macros.variables import Output, Variable
 
 
 class Range(object):
@@ -33,13 +31,13 @@ class Range(object):
 # Port = [[1,3] | [4,6] | [7,9]  ]
 
 class OutputAssignment(object):
-    def __init__(self, left        , right):
+    def __init__(self, left, right):
         if len(right) == 0:
             raise UnsatisfiableAssignmentException
         self.left = left
         self.ranges = right
 
-        #print("Creating Output Assignment , left = %s , right = %s\n" % (left, self.ranges))
+        # print("Creating Output Assignment , left = %s , right = %s\n" % (left, self.ranges))
 
     def __mul__(self, other):
         if self.left.name != other.left.name:
@@ -48,7 +46,7 @@ class OutputAssignment(object):
         for mine in self.ranges:
             for its in other.ranges:
                 try:
-                    #print(mine, its)
+                    # print(mine, its)
                     combined = mine * its
                     ret.append(combined)
                 except InvalidRangeException:
@@ -86,9 +84,9 @@ class OutputAssignment(object):
 
 class OutputAssignments(object):
     default_list = dict()
-    #ey: str
-    #alue: Variable
 
+    # ey: str
+    # alue: Variable
 
     # for key, value in Input.builtin.items():
     #    default_list[key] = Range(value.min_value, value.max_value, False)
@@ -96,7 +94,7 @@ class OutputAssignments(object):
     def __init__(self, assignment_list):
 
         satisfiable = True
-        #print("assignment lists = ", assignment_list)
+        # print("assignment lists = ", assignment_list)
         bool_consts = filter(lambda x: type(x) == bool, assignment_list)
 
         for bool_const in bool_consts:
@@ -105,8 +103,8 @@ class OutputAssignments(object):
                 # print("Unsatisfiable Output Assignment")
                 raise UnsatisfiableAssignmentException
 
-        assignment_list                         = list(filter(lambda x: type(x) != bool, assignment_list))
-        res                                 = dict()
+        assignment_list = list(filter(lambda x: type(x) != bool, assignment_list))
+        res = dict()
         # Collapsing Output Assignment in the same List
         for assignment in assignment_list:
             try:
@@ -124,7 +122,7 @@ class OutputAssignments(object):
         Assume no duplicate range for same input
     """
 
-    def __mul__(self, other)                       :
+    def __mul__(self, other):
         ret = dict()
 
         try:
@@ -133,15 +131,15 @@ class OutputAssignments(object):
 
             for its_output, its_assign in other.assignment_dict.items():
                 if its_output in ret:
-                    #print("Case 1")
-                    #print(ret[its_output], its_assign)
+                    # print("Case 1")
+                    # print(ret[its_output], its_assign)
                     ret[its_output] = ret[its_output] * its_assign
-                    #print(ret[its_output])
+                    # print(ret[its_output])
                 else:
-                    #print("Case 2")
+                    # print("Case 2")
                     ret[its_output] = its_assign
         except UnsatisfiableAssignmentException:
-            #print("QQ")
+            # print("QQ")
             raise UnsatisfiableActionException
 
         return OutputAssignments(list(ret.values()))
@@ -204,4 +202,3 @@ class OutputActionList(object):
                 except UnsatisfiableAssignmentException:
                     pass
         self.assignment_list = ret
-

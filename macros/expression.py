@@ -1,8 +1,7 @@
-
-from macros.binding import FVS, Configuration
-from macros.bounded_expression import BoundedExpr, BoundedImplies, BoundedAction, BoundedMatch,\
+from macros.binding import FVS
+from macros.bounded_expression import BoundedImplies, BoundedAction, BoundedMatch, \
     BoundedEQ, BoundedGT, BoundedLT, BoundedNEQ, BoundedActionList, BoundedGuard, BoundedGEQ, BoundedLEQ
-from macros.variables import Variable, Input, FreeVariable
+from macros.variables import Input, FreeVariable
 
 """
     What should apply returns ?
@@ -15,7 +14,7 @@ class Expr(object):
         return FVS()
         pass
 
-    def apply_conf(self, conf               )               :
+    def apply_conf(self, conf):
         raise NotImplementedError
 
     pass
@@ -33,11 +32,11 @@ class Predicate(Expr):
 
 class LEQ(Predicate):
 
-    def __init__(self, left          , right)        :
+    def __init__(self, left, right):
         self.left = left
         self.right = right
 
-    def apply_conf(self, binding               )                :
+    def apply_conf(self, binding):
         left = self.left
         right = self.right
         if isinstance(self.left, FreeVariable):
@@ -52,11 +51,11 @@ class LEQ(Predicate):
 
 class GEQ(Predicate):
 
-    def __init__(self, left          , right)        :
+    def __init__(self, left, right):
         self.left = left
         self.right = right
 
-    def apply_conf(self, binding               )                :
+    def apply_conf(self, binding):
         left = self.left
         right = self.right
         if isinstance(self.left, FreeVariable):
@@ -71,11 +70,11 @@ class GEQ(Predicate):
 
 class GT(Predicate):
 
-    def __init__(self, left          , right)        :
+    def __init__(self, left, right):
         self.left = left
         self.right = right
 
-    def apply_conf(self, binding               )               :
+    def apply_conf(self, binding):
         left = self.left
         right = self.right
         if isinstance(self.left, FreeVariable):
@@ -93,11 +92,11 @@ class GT(Predicate):
 
 class LT(Predicate):
 
-    def __init__(self, left          , right)        :
+    def __init__(self, left, right):
         self.left = left
         self.right = right
 
-    def apply_conf(self, binding               )               :
+    def apply_conf(self, binding):
         left = self.left
         right = self.right
         if isinstance(self.left, FreeVariable):
@@ -112,7 +111,7 @@ class LT(Predicate):
 
 class EQ(Predicate):
 
-    def __init__(self, left, right)        :
+    def __init__(self, left, right):
         self.left = left
         self.right = right
 
@@ -123,7 +122,7 @@ class EQ(Predicate):
             return FVS(self.left, self.right)
         return FVS()
 
-    def apply_conf(self, binding               )               :
+    def apply_conf(self, binding):
         left = self.left
         right = self.right
         if isinstance(self.left, FreeVariable):
@@ -143,7 +142,7 @@ class EQ(Predicate):
 
 class NEQ(Predicate):
 
-    def __init__(self, left, right)        :
+    def __init__(self, left, right):
         self.left = left
         self.right = right
 
@@ -154,7 +153,7 @@ class NEQ(Predicate):
             return FVS(self.left, self.right)
         return FVS()
 
-    def apply_conf(self, binding               )                :
+    def apply_conf(self, binding):
         left = self.left
         right = self.right
         if isinstance(self.left, FreeVariable):
@@ -171,7 +170,7 @@ class NEQ(Predicate):
 
 class Match(Expr):
 
-    def __init__(self, expr_list)        :
+    def __init__(self, expr_list):
         self.expr_list = expr_list
 
     def collect_binding(self):
@@ -180,7 +179,7 @@ class Match(Expr):
             ret += expr.collect_binding()
         return ret
 
-    def apply_conf(self, conf)                  :
+    def apply_conf(self, conf):
         return BoundedMatch(list(map(lambda x: x.apply_conf(conf), self.expr_list)))
 
     def __repr__(self):
@@ -194,7 +193,7 @@ class Match(Expr):
 
 
 class Guard(Expr):
-    def __init__(self, assign_list)        :
+    def __init__(self, assign_list):
         self.assign_list = assign_list
 
     def collect_binding(self):
@@ -203,7 +202,7 @@ class Guard(Expr):
             ret += expr.collect_binding()
         return ret
 
-    def apply_conf(self, binding               )                  :
+    def apply_conf(self, binding):
         return BoundedGuard(list(map(lambda x: x.apply_conf(binding), self.assign_list)))
 
     def __repr__(self):
@@ -218,7 +217,7 @@ class Guard(Expr):
 
 class Action(Expr):
 
-    def __init__(self, assign_list)        :
+    def __init__(self, assign_list):
         self.assign_list = assign_list
 
     def collect_binding(self):
@@ -227,7 +226,7 @@ class Action(Expr):
             ret += expr.collect_binding()
         return ret
 
-    def apply_conf(self, binding               )                   :
+    def apply_conf(self, binding):
         return BoundedAction(list(map(lambda x: x.apply_conf(binding), self.assign_list)))
 
     def __repr__(self):
@@ -247,7 +246,7 @@ class ActionList(Expr):
             ret += expr.collect_binding()
         return ret
 
-    def apply_conf(self, binding               )                       :
+    def apply_conf(self, binding):
         return BoundedActionList(list(map(lambda x: x.apply_conf(binding), self.action_list)))
 
     def __repr__(self):
@@ -255,17 +254,17 @@ class ActionList(Expr):
 
 
 class Implies(Expr):
-    #eft: Match
-    #ight: ActionList
+    # eft: Match
+    # ight: ActionList
 
-    def __init__(self, left       , right            ):
+    def __init__(self, left, right):
         self.left = left
         self.right = right
 
     def collect_binding(self):
         return self.left.collect_binding() + self.right.collect_binding()
 
-    def apply_conf(self, binding)                    :
+    def apply_conf(self, binding):
         left = self.left
         right = self.right
         return BoundedImplies(left.apply_conf(binding), right.apply_conf(binding))
