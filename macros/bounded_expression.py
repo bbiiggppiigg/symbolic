@@ -166,11 +166,13 @@ class BoundedEQ(BoundedPredicate):
 
         left = self.left
         right = self.right
+
+        #print("haha %s == %s" % (left, right))
         if left in pkt.binding.keys():
             left = pkt.binding[left]
         if right in pkt.binding.keys():
             right = pkt.binding[right]
-        # print("haha %s == %s" % (left, right))
+        #print("haha %s == %s" % (left, right))
         if isinstance(left, Output) and isinstance(right, Value):
             return OutputAssignment(left, self.get_range())
         elif isinstance(left, Value) and isinstance(right, Value):

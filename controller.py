@@ -2,8 +2,13 @@ from macros.actions import OutputActionList
 from macros.binding import InputBinding
 from macros.bounded_expression import Bool
 from macros.exceptions import UnsatisfiableActionException
-from macros.inputs import input_sequence
-from macros.instances import invariants, reactions, precedences, inv
+from macros.instances import invariants, reactions, precedences
+
+import frenetic
+from frenetic.syntax import *
+from frenetic.packet import *
+
+
 
 
 class ActivatedPrecedences(object):
@@ -50,7 +55,7 @@ class ActivatedReactions(object):
             if react.start.apply_conf(conf).apply(input_binding):
                 if react not in self.record:
                     self.record[react] = list()
-                    self.record[react].append(conf)
+                self.record[react].append(conf)
 
     def get_assignments(self, input_binding):
         ret = []
@@ -68,41 +73,64 @@ class ActivatedReactions(object):
 ActiveReactions = ActivatedReactions(reactions)
 ActivePrecedences = ActivatedPrecedences(precedences)
 
-for (pkt, port_id) in input_sequence:
-    input_binding = InputBinding(pkt, port_id)
+class RepeaterApp(frenetic.App):
 
-    ActivePrecedences.record(pkt, port_id)
-    ActiveReactions.clear(input_binding)
+    def __init__(self):
+        frenetic.App.__init__(self)
 
-    # Enforce policies for Invariant, Reaction and Precedence
-    OA = OutputActionList([])
-    for invariant in invariants:
-        conf = inv.get_configuration(pkt, port_id)
-        rhs = invariant.expr.apply_conf(conf).apply(input_binding)
-        if type(rhs) == Bool:
-            if rhs.value:
-                print("GOOD!")
+    def connected(self):
+        def handle_current_switches(swithces):
+            dpid = swithces.keys()[0]
+
+            self.update(id >> SendToController("repeater_app"))
+        self.current_switches(callback=handle_current_switches)
+
+    def packet_in(self,dpid,port_id,payload):
+        actions = SetPort([1,2,3,4,5])
+        pkt = Packet.from_payload(dpid,port_id,payload)
+        input_binding = InputBinding(pkt,port_id)
+        #print input_binding
+        ActivePrecedences.record(pkt, port_id)
+        ActiveReactions.clear(input_binding)
+        
+        
+        OA = OutputActionList([])
+        
+        for invariant in invariants:
+            conf = invariant.get_configuration(pkt, port_id)
+            #print (invariant.expr.apply_conf(conf))
+            rhs = invariant.expr.apply_conf(conf).apply(input_binding)
+            if type(rhs) == Bool:
+                if rhs.value:
+                    print("GOOD!")
+                else:
+                    raise Exception("Violation!")  # TODO : Test
             else:
-                raise Exception("Violation!")  # TODO : Test
-        else:
-            print("before update oa = ", OA)
-            OA = OA * rhs
-            print("after update oa = ", OA)
+                #print("before update oa = ", OA)
+                OA = OA * rhs
+                #print("after update oa = ", OA)
 
-    try:
-        oas = ActiveReactions.get_assignments(input_binding)
-        for oa in oas:
-            OA = OA * oa
-    except UnsatisfiableActionException:
-        raise Exception("QQ")
+        try:
+            oas = ActiveReactions.get_assignments(input_binding)
+            for oa in oas:
+                OA = OA * oa
+        except UnsatisfiableActionException:
+            raise Exception("QQ")
 
-    try:
-        oas = ActivePrecedences.get_assignments(input_binding, pkt, port_id)
-        for oa in oas:
-            OA = OA * oa
-    except UnsatisfiableActionException:
-        raise Exception("QQ")
+        """
+        try:
+            oas = ActivePrecedences.get_assignments(input_binding, pkt, port_id)
+            for oa in oas:
+                OA = OA * oa
+        except UnsatisfiableActionException:
+            raise Exception("QQ")
+        """
+        # Update Activated Reactions and Precedences
+        ActiveReactions.activate(input_binding, pkt, port_id)
+        print("final oa = ", OA)
 
-    # Update Activated Reactions and Precedences
-    ActiveReactions.activate(input_binding, pkt, port_id)
-    print("final oa = ", OA)
+        self.pkt_out(dpid,payload,actions)
+app = RepeaterApp()
+app.start_event_loop()
+
+

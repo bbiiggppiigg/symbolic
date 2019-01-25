@@ -1,9 +1,10 @@
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 
 
-class Value(ABC):
+class Value(object):
     # def to_int(self):
     #    raise NotImplementedError("");
+    __metaclass__ = ABCMeta
     @property
     @classmethod
     @abstractmethod
@@ -46,6 +47,9 @@ class Mac(Value):
             raise Exception("Invalid Mac Value : %s " % mac_str)
 
     def __eq__(self, other):
+        if type(other) != type(self):
+            return False
+
         return self.value == other.value
 
     def __hash__(self):
@@ -62,6 +66,11 @@ class Port(Value):
             raise Exception("Invalid Port Value : %d " % port)
 
     def __eq__(self, other):
+        if type(other) != type(self):
+            return False
+
+        if type(other) != type(self):
+            return False
         return self.value == other.value
 
     def __hash__(self):
@@ -78,6 +87,10 @@ class Vlan(Value):
             raise Exception("Invalid Vlan Value %d " % vlan)
 
     def __eq__(self, other):
+
+        if type(other) != type(self):
+            return False
+
         return self.value == other.value
 
     def __hash__(self):
@@ -94,6 +107,9 @@ class PriorityCode(Value):
             raise Exception("Invalid Priority Code %d" % p)
 
     def __eq__(self, other):
+        if type(other) != type(self):
+            return False
+
         return self.value == other.value
 
     def __hash__(self):
@@ -110,6 +126,9 @@ class EthType(Value):
             raise Exception("Invalid Eth Type %d " % t)
 
     def __eq__(self, other):
+        if type(other) != type(self):
+            return False
+
         return self.value == other.value
 
     def __hash__(self):
@@ -126,6 +145,9 @@ class IPProto(Value):
             raise Exception("Invalid IPProto %d " % p)
 
     def __eq__(self, other):
+        if type(other) != type(self):
+            return False
+
         return self.value == other.value
 
     def __hash__(self):
@@ -151,6 +173,8 @@ class IPAddr(Value):
             raise Exception("Invalid IP Address %s " % ip_str)
 
     def __eq__(self, other):
+        if type(other) != type(self):
+            return False
         return self.value == other.value
 
     def __hash__(self):
@@ -167,6 +191,9 @@ class TCPPort(Value):
             raise Exception("Invalid TCP Port %d " % port)
 
     def __eq__(self, other):
+        if type(other) != type(self):
+            return False
+
         return self.value == other.value
 
     def __hash__(self):

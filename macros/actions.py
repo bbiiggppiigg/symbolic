@@ -39,7 +39,7 @@ class OutputAssignment(object):
         self.left = left
         self.ranges = right
 
-        print("Creating Output Assignment , left = %s , right = %s\n" % (left, self.ranges))
+        #print("Creating Output Assignment , left = %s , right = %s\n" % (left, self.ranges))
 
     def __mul__(self, other):
         if self.left.name != other.left.name:
@@ -96,7 +96,7 @@ class OutputAssignments(object):
     def __init__(self, assignment_list):
 
         satisfiable = True
-        print("assignment lists = ", assignment_list)
+        #print("assignment lists = ", assignment_list)
         bool_consts = filter(lambda x: type(x) == bool, assignment_list)
 
         for bool_const in bool_consts:
@@ -204,3 +204,4 @@ class OutputActionList(object):
                 except UnsatisfiableAssignmentException:
                     pass
         self.assignment_list = ret
+
