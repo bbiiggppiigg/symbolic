@@ -1,5 +1,6 @@
 from macros.exceptions import InvalidRangeException, UnsatisfiableAssignmentException, UnsatisfiableActionException
-
+from macros.variables import Output
+import random
 
 class Range(object):
 
@@ -27,6 +28,8 @@ class Range(object):
     def __repr__(self):
         return "[%d,%d]" % (self.min_value, self.max_value)
 
+    def get_action(self):
+        return random.randrange(self.min_value,self.max_value+1)
 
 # Port = [[1,3] | [4,6] | [7,9]  ]
 
@@ -38,6 +41,8 @@ class OutputAssignment(object):
         self.ranges = right
 
         # print("Creating Output Assignment , left = %s , right = %s\n" % (left, self.ranges))
+    def get_action(self):
+        return Output.builtin[self.left.name].to_output(random.choice(self.ranges).get_action())
 
     def __mul__(self, other):
         if self.left.name != other.left.name:
@@ -90,6 +95,15 @@ class OutputAssignments(object):
 
     # for key, value in Input.builtin.items():
     #    default_list[key] = Range(value.min_value, value.max_value, False)
+
+    def get_action(self):
+        #print "calling get action in oas "
+        ret = dict()
+        #print self.assignment_dict
+        for out,assign in self.assignment_dict.items():
+            ret[out.name] = assign.get_action()
+        #print "ret = ",ret
+        return ret
 
     def __init__(self, assignment_list):
 
@@ -159,6 +173,16 @@ class OutputActionList(object):
         self.assignment_list = assignment_list
         self.unsat = unsat
 
+    def get_action(self):
+        # return port assignment (if presents) as well as other actions
+        assert(self.unsat is False)
+
+        print "my assign list ",self.assignment_list
+        if len(self.assignment_list) ==0 :
+            return dict()
+        return random.choice(self.assignment_list).get_action()
+
+
     def __repr__(self):
         # print(len(self.assignment_list))
         # print(len(self.assignment_list))
@@ -173,18 +197,20 @@ class OutputActionList(object):
         if self.unsat or other.unsat:
             return OutputActionList([], True)
         if len(mine) == 0:
-            return OutputActionList(its)
+            return OutputActionList(its, other.unsat)
         if len(its) == 0:
-            return OutputActionList(mine)
-
+            return OutputActionList(mine, mine.unsat)
+        unsat = True
         for my in mine:
             for it in its:
                 try:
-                    ret.append(my * it)
+                    one = my * it 
+                    unsat = False
+                    ret.append(one)
                 except UnsatisfiableActionException:
                     continue
 
-        return OutputActionList(ret)
+        return OutputActionList(ret,unsat)
 
     def __imul__(self, other):
         mine = self.assignment_list

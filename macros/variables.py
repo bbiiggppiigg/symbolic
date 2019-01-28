@@ -68,11 +68,15 @@ class Output(Variable):
 class StateVar(Variable):
 
     def __init__(self, name, vartype, init_value):
+        print ("creating state var", name , vartype, init_value)
         Input.add_var(name, vartype)
         Output.add_var(name + "_out", vartype)
         super().__init__(name)
         self.value = init_value
-
+        self.vartype = vartype
+    
+    def update_value(self,value):
+        self.value = value
 
 class FreeVariable(Variable):
     builtin = {"IPAddr": IPAddr, "Mac": Mac, "IPProto": IPProto, "Port": Port}

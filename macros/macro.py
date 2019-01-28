@@ -3,8 +3,8 @@ from macros.binding import InputBinding, Configuration
 
 class Macro(object):
 
-    def get_configuration(self, pkt, port_id):
-        return Configuration(self.binding, InputBinding(pkt, port_id))
+    def get_configuration(self, input_binding):
+        return Configuration(self.binding, input_binding)
 
     pass
 
@@ -14,9 +14,9 @@ class Invariant(Macro):
         self.expr = expr
         self.binding = self.expr.collect_binding()
 
-    def apply(self, pkt, port_id):
-        conf = self.get_configuration(pkt, port_id)
-        ret = self.expr.apply_conf(conf).apply(InputBinding(pkt, port_id))
+    def apply(self, input_binding):
+        conf = self.get_configuration(input_binding)
+        ret = self.expr.apply_conf(conf).apply(input_binding)
 
         return ret
 
@@ -27,8 +27,8 @@ class Precedence(Macro):
         self.after = after
         self.binding = self.before.collect_binding()
 
-    def happen(self, conf, pkt, port_id):
-        if self.before.apply_conf(conf).apply(InputBinding(pkt, port_id)):
+    def happen(self, conf, input_binding):
+        if self.before.apply_conf(conf).apply(input_binding):
             return True
         return False
 
@@ -53,10 +53,10 @@ class Reaction(Macro):
         self.policy_binding = policy_binding
         self.end_binging = end_binding
 
-    def get_actions(self, pkt, port_id):
-        conf = self.get_configuration(pkt, port_id)
-        match = self.policy.left.apply_conf(conf).apply(InputBinding(pkt, port_id))
-        action = self.policy.right.apply_conf(conf).apply(InputBinding(pkt, port_id))
+    def get_actions(self, input_binding):
+        conf = self.get_configuration(input_binding)
+        match = self.policy.left.apply_conf(conf).apply(input_binding)
+        action = self.policy.right.apply_conf(conf).apply(input_binding)
         ands = match
         cond = True
         for expr in ands.expr_list:

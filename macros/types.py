@@ -23,6 +23,11 @@ class Value(object):
 
     def __repr__(self):
         return "%s" % self.value
+    
+    @classmethod
+    def to_output(cls,value):
+        return value
+
 
     pass
 
@@ -55,10 +60,22 @@ class Mac(Value):
 
     def __hash__(self):
         return self.value.__hash__() + "Mac".__hash__()
+    
+    def int_mac2str(mac):
+        a0 = str(mac & 0xff)
+        a1 = str((mac & 0xff00) >> 8) 
+        a2 = str((mac & 0xff0000) >> 16)
+        a3 = str((mac & 0xff000000) >> 24)
+        a4 = str((mac & 0xff00000000) >> 32)
+        a5 = str((mac & 0xff0000000000) >> 40)
 
+        return ".".join([a5,a4,a3, a2, a1, a0])
+    @classmethod
+    def to_output(cls,value):
+        return int_mac2str(value)
 
 class Port(Value):
-    min_value = 1
+    min_value = 0
     max_value = 1024
 
     def __init__(self, port):
@@ -96,6 +113,7 @@ class Vlan(Value):
 
     def __hash__(self):
         return self.value.__hash__() + "Vlan".__hash__()
+    
 
 
 class PriorityCode(Value):
@@ -181,6 +199,18 @@ class IPAddr(Value):
     def __hash__(self):
         return self.value.__hash__() + "IPAddr".__hash__()
 
+    @classmethod
+    def int_ip2str(cls,int_ip):
+        a0 = str(int_ip & 0xff)
+        a1 = str((int_ip & 0xff00) >> 8) 
+        a2 = str((int_ip & 0xff0000) >> 16)
+        a3 = str((int_ip & 0xff000000) >> 24)
+
+        return ".".join([a3, a2, a1, a0])
+    
+    @classmethod
+    def to_output(cls,value):
+        return cls.int_ip2str(value)
 
 class TCPPort(Value):
     min_value = 0
@@ -199,3 +229,4 @@ class TCPPort(Value):
 
     def __hash__(self):
         return self.value.__hash__() + "TCPPort".__hash__()
+

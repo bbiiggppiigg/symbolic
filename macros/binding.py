@@ -53,7 +53,7 @@ class InputBinding(object):
             self.binding[Input('tcpSrcPort')] = TCPPort(pkt.tcpSrcPort)
             self.binding[Input('tcpSrcPort')] = TCPPort(pkt.tcpDstPort)
 
-        for sv in state_var_list:
+        for _,sv in state_var_list:
             self.binding[Input(sv.name)] = sv.vartype(sv.value)
 
 
