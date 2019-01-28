@@ -2,6 +2,7 @@ from macros.binding import InputBinding, Configuration
 
 
 class Macro(object):
+
     def get_configuration(self, pkt, port_id):
         return Configuration(self.binding, InputBinding(pkt, port_id))
 

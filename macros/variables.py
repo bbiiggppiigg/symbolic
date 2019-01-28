@@ -26,13 +26,19 @@ class Input(Variable):
                "port_id": Port}
 
     def __init__(self, name):
-        if name not in self.builtin:
+        if name not in Input.builtin:
             raise UnexpectedInputException("expecting input, get %s" % name)
         super().__init__(name)
         self.type = self.builtin[self.name]
 
     def __repr__(self):
         return ("input(%s)" % self.name)
+
+    @classmethod
+    def add_var(cls, name, vartype):
+        if name in cls.builtin:
+            raise UnexpectedInputException("declaring duplicate input %s" % name)
+        cls.builtin[name] = vartype
 
     pass
 
@@ -50,7 +56,22 @@ class Output(Variable):
     def __repr__(self):
         return "output(%s)" % self.name
 
+    @classmethod
+    def add_var(cls, name, vartype):
+        if name in cls.builtin:
+            raise UnexpectedInputException("declaring duplicate input %s" % name)
+        cls.builtin[name] = vartype
+
     pass
+
+
+class StateVar(Variable):
+
+    def __init__(self, name, vartype, init_value):
+        Input.add_var(name, vartype)
+        Output.add_var(name + "_out", vartype)
+        super().__init__(name)
+        self.value = init_value
 
 
 class FreeVariable(Variable):

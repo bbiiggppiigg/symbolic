@@ -34,7 +34,7 @@ class Packet(object):
 
 class InputBinding(object):
 
-    def __init__(self, pkt, port_id):
+    def __init__(self, pkt, port_id, state_var_list):
         self.binding = dict()
         self.binding[Input('ethSrc')] = Mac(pkt.ethSrc)
         self.binding[Input('ethDst')] = Mac(pkt.ethDst)
@@ -52,6 +52,9 @@ class InputBinding(object):
         if pkt.tcpSrcPort is not None:
             self.binding[Input('tcpSrcPort')] = TCPPort(pkt.tcpSrcPort)
             self.binding[Input('tcpSrcPort')] = TCPPort(pkt.tcpDstPort)
+
+        for sv in state_var_list:
+            self.binding[Input(sv.name)] = sv.vartype(sv.value)
 
 
 class FVS(object):
