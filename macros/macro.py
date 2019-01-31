@@ -1,4 +1,5 @@
-from macros.binding import InputBinding, Configuration
+from macros.binding import Configuration
+from macros.expression import Match, Implies
 
 
 class Macro(object):
@@ -22,7 +23,7 @@ class Invariant(Macro):
 
 
 class Precedence(Macro):
-    def __init__(self, before, after):
+    def __init__(self, before: Match, after: Implies):
         self.before = before
         self.after = after
         self.binding = self.before.collect_binding()

@@ -1,8 +1,12 @@
-from macros.exceptions import InvalidRangeException, UnsatisfiableAssignmentException, UnsatisfiableActionException
-from macros.variables import Output
 import random
 
+from macros.binding import Filter
+from macros.exceptions import InvalidRangeException, UnsatisfiableAssignmentException, UnsatisfiableActionException
+from macros.variables import Output
+
+
 class Range(object):
+    concrete: set
 
     def __init__(self, min_value, max_value, care=True):
         if min_value > max_value:
@@ -11,6 +15,7 @@ class Range(object):
         self.min_value = min_value
         self.max_value = max_value
         self.care = care
+        self.concrete = set(range(min_value, max_value + 1))
 
     def __mul__(self, other):
         new_min = self.min_value if self.min_value > other.min_value else other.min_value
@@ -24,12 +29,20 @@ class Range(object):
         self.min_value = new_min
         self.max_value = new_max
         self.care |= other.care
+        self.concrete = set(range(self.min_value, self.max_value + 1))
 
     def __repr__(self):
         return "[%d,%d]" % (self.min_value, self.max_value)
 
     def get_action(self):
-        return random.randrange(self.min_value,self.max_value+1)
+        # return random.randrange(self.min_value, self.max_value + 1)
+        return random.choice(self.concrete)
+
+    def filter_output(self, values):
+        self.concrete = self.concrete.intersection(values)
+        if self.concrete == set():
+            raise InvalidRangeException
+
 
 # Port = [[1,3] | [4,6] | [7,9]  ]
 
@@ -41,6 +54,20 @@ class OutputAssignment(object):
         self.ranges = right
 
         # print("Creating Output Assignment , left = %s , right = %s\n" % (left, self.ranges))
+
+    def filter_output(self, values):
+        ret = []
+        for myrange in self.ranges:
+            try:
+                filtered_range = myrange.filter_output(values)
+                ret.append(filtered_range)
+            except InvalidRangeException:
+                continue
+        if len(ret) == 0:
+            raise UnsatisfiableAssignmentException
+
+        self.ranges = ret
+
     def get_action(self):
         return Output.builtin[self.left.name].to_output(random.choice(self.ranges).get_action())
 
@@ -90,6 +117,14 @@ class OutputAssignment(object):
 class OutputAssignments(object):
     default_list = dict()
 
+    def filter_output(self, action_filter: Filter):
+        for key, value in action_filter.binding.items():
+            try:
+                if key in self.assignment_dict:
+                    self.assignment_dict[key].filter_output(value)
+            except UnsatisfiableAssignmentException:
+                raise UnsatisfiableActionException
+
     # ey: str
     # alue: Variable
 
@@ -97,12 +132,12 @@ class OutputAssignments(object):
     #    default_list[key] = Range(value.min_value, value.max_value, False)
 
     def get_action(self):
-        #print "calling get action in oas "
+        # print "calling get action in oas "
         ret = dict()
-        #print self.assignment_dict
-        for out,assign in self.assignment_dict.items():
+        # print self.assignment_dict
+        for out, assign in self.assignment_dict.items():
             ret[out.name] = assign.get_action()
-        #print "ret = ",ret
+        # print "ret = ",ret
         return ret
 
     def __init__(self, assignment_list):
@@ -169,19 +204,35 @@ pass
 
 class OutputActionList(object):
 
+    def filter_output(self, action_filter):
+        if self.unsat:
+            return self
+
+        ret = []
+        unsat = True
+        for output_action in self.assignment_list:
+            try:
+                filtered_action = output_action.filter_output(action_filter)
+                ret.append(filtered_action)
+                unsat = False
+            except UnsatisfiableActionException:
+                continue
+
+        return OutputActionList(ret, unsat)
+
     def __init__(self, assignment_list, unsat=False):
         self.assignment_list = assignment_list
         self.unsat = unsat
 
     def get_action(self):
         # return port assignment (if presents) as well as other actions
-        assert(self.unsat is False)
+        assert (self.unsat is False)
 
-        print "my assign list ",self.assignment_list
-        if len(self.assignment_list) ==0 :
+        print
+        "my assign list ", self.assignment_list
+        if len(self.assignment_list) == 0:
             return dict()
         return random.choice(self.assignment_list).get_action()
-
 
     def __repr__(self):
         # print(len(self.assignment_list))
@@ -189,7 +240,6 @@ class OutputActionList(object):
         return "output action list [%s]" % ("".join(map(lambda x: x.__repr__(), self.assignment_list)))
 
     def __mul__(self, other):
-
         mine = self.assignment_list
         its = other.assignment_list
 
@@ -204,13 +254,13 @@ class OutputActionList(object):
         for my in mine:
             for it in its:
                 try:
-                    one = my * it 
+                    one = my * it
                     unsat = False
                     ret.append(one)
                 except UnsatisfiableActionException:
                     continue
 
-        return OutputActionList(ret,unsat)
+        return OutputActionList(ret, unsat)
 
     def __imul__(self, other):
         mine = self.assignment_list

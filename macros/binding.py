@@ -53,7 +53,7 @@ class InputBinding(object):
             self.binding[Input('tcpSrcPort')] = TCPPort(pkt.tcpSrcPort)
             self.binding[Input('tcpSrcPort')] = TCPPort(pkt.tcpDstPort)
 
-        for _,sv in state_var_list:
+        for _, sv in state_var_list:
             self.binding[Input(sv.name)] = sv.vartype(sv.value)
 
 
@@ -92,6 +92,32 @@ class FVS(object):
 """
 
 
+class Filter(object):
+
+    def __init__(self, binding_dict):
+        self.binding = dict()
+        for key, value in binding_dict.items():
+            self.binding[key] = set(value)
+
+    def __add__(self, other):
+        ret = dict()
+        for key, value in self.binding.items():
+            ret[key] = value
+        for key, value in other.binding.items():
+            if key in ret:
+                ret[key] = ret[key].intersection(value)
+            else:
+                ret[key] = value
+        return Filter(ret)
+
+    def __iadd__(self, other):
+        for key, value in other.binding.items():
+            if key in self.binding:
+                self.binding[key] = self.binding[key].intersection(value)
+            else:
+                self.binding[key] = value
+
+
 class Configuration(object):
 
     def __init__(self, binding, pkt):
@@ -114,3 +140,6 @@ class Configuration(object):
 
     def __hash__(self):
         return self.binding.__hash__()
+
+    def get_filter(self):
+        return Filter(self.binding)

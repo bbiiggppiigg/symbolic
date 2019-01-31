@@ -223,8 +223,10 @@ class Bool(object):
 
     def __repr__(self):
         return self.value.__repr__()
+
     def __nonzero__(self):
         return self.value
+
 
 class BoundedMatch(BoundedExpr):
 
@@ -315,11 +317,11 @@ class BoundedImplies(BoundedExpr):
         self.right = right
 
     def apply(self, pkt):
-        #print "bounded implies", self.left , self.right
-        #print "left true ? ",self.left.apply(pkt)
+        # print "bounded implies", self.left , self.right
+        # print "left true ? ",self.left.apply(pkt)
         if self.left.apply(pkt):
             return self.right.apply(pkt)
-        #print "returning true"
+        # print "returning true"
         return Bool(True)
 
     def __repr__(self):
