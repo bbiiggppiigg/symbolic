@@ -1,4 +1,4 @@
-from macros.binding import Configuration
+from macros.binding import Configuration , Filter,InputBinding
 from macros.expression import Match, Implies
 
 
@@ -23,16 +23,31 @@ class Invariant(Macro):
 
 
 class Precedence(Macro):
-    def __init__(self, before: Match, after: Implies):
+    def __init__(self, before, after ) :
         self.before = before
         self.after = after
         self.binding = self.before.collect_binding()
+        if self.binding.binding == dict():
+            self.symbolic = False
+        else:
+            self.symbolic = True
 
     def happen(self, conf, input_binding):
-        if self.before.apply_conf(conf).apply(input_binding):
+        ret = self.before.apply_conf(conf).apply(input_binding)
+        if ret:
             return True
         return False
+    
+    def collect_outputs(self):
+        return self.after.collect_outputs()
+        
+    def get_filter(self):
+        assert (self.symbolic == False)
+        input_binding = InputBinding(None,0,[])
+        return self.after.apply_conf(Configuration(input_binding,None)).apply(input_binding).get_filter()
 
+    def __repr__(self):
+        return " Precedence ( %s , %s ) " % (self.before.__repr__(),self.after.__repr__())
 
 class Reaction(Macro):
     def __init__(self, start, policy, end):

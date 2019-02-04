@@ -36,22 +36,23 @@ class InputBinding(object):
 
     def __init__(self, pkt, port_id, state_var_list):
         self.binding = dict()
-        self.binding[Input('ethSrc')] = Mac(pkt.ethSrc)
-        self.binding[Input('ethDst')] = Mac(pkt.ethDst)
-        self.binding[Input('ethType')] = EthType(pkt.ethType)
-        self.binding[Input('port_id')] = Port(port_id)
-        if pkt.vlan is not None:
-            self.binding[Input('vlan')] = Vlan(pkt.vlan)
-            self.binding[Input('vlanPcp')] = PriorityCode(pkt.vlanPcp)
+        if pkt is not None:
+            self.binding[Input('ethSrc')] = Mac(pkt.ethSrc)
+            self.binding[Input('ethDst')] = Mac(pkt.ethDst)
+            self.binding[Input('ethType')] = EthType(pkt.ethType)
+            self.binding[Input('port_id')] = Port(port_id)
+            if pkt.vlan is not None:
+                self.binding[Input('vlan')] = Vlan(pkt.vlan)
+                self.binding[Input('vlanPcp')] = PriorityCode(pkt.vlanPcp)
 
-        if pkt.ip4Src is not None:
-            self.binding[Input('ip4Src')] = IPAddr(pkt.ip4Src)
-            self.binding[Input('ip4Dst')] = IPAddr(pkt.ip4Dst)
-            self.binding[Input('ipProto')] = IPProto(pkt.ipProto)
+            if pkt.ip4Src is not None:
+                self.binding[Input('ip4Src')] = IPAddr(pkt.ip4Src)
+                self.binding[Input('ip4Dst')] = IPAddr(pkt.ip4Dst)
+                self.binding[Input('ipProto')] = IPProto(pkt.ipProto)
 
-        if pkt.tcpSrcPort is not None:
-            self.binding[Input('tcpSrcPort')] = TCPPort(pkt.tcpSrcPort)
-            self.binding[Input('tcpSrcPort')] = TCPPort(pkt.tcpDstPort)
+            if pkt.tcpSrcPort is not None:
+                self.binding[Input('tcpSrcPort')] = TCPPort(pkt.tcpSrcPort)
+                self.binding[Input('tcpSrcPort')] = TCPPort(pkt.tcpDstPort)
 
         for _, sv in state_var_list:
             self.binding[Input(sv.name)] = sv.vartype(sv.value)
@@ -93,13 +94,39 @@ class FVS(object):
 
 
 class Filter(object):
-
+    
+    def __repr__(self):
+        return "Filter( %s ) " % self.binding.__repr__() 
     def __init__(self, binding_dict):
         self.binding = dict()
         for key, value in binding_dict.items():
-            self.binding[key] = set(value)
+            if value is not None:
+                self.binding[key] = set([value.get_value()])
+            else:
+                self.binding[key] = set()
+        #print "creating filter"
+        #print self.binding
 
     def __add__(self, other):
+        ret = dict()
+        for key, value in self.binding.items():
+            ret[key] = value
+        for key, value in other.binding.items():
+            if key in ret:
+                ret[key] = ret[key].union(value)
+            else:
+                ret[key] = value
+        return Filter(ret)
+
+    def __iadd__(self, other):
+        for key, value in other.binding.items():
+            if key in self.binding:
+                self.binding[key] = self.binding[key].union(value)
+            else:
+                self.binding[key] = value
+        return self
+
+    def __mul__(self, other):
         ret = dict()
         for key, value in self.binding.items():
             ret[key] = value
@@ -110,13 +137,13 @@ class Filter(object):
                 ret[key] = value
         return Filter(ret)
 
-    def __iadd__(self, other):
+    def __imul__(self, other):
         for key, value in other.binding.items():
             if key in self.binding:
                 self.binding[key] = self.binding[key].intersection(value)
             else:
                 self.binding[key] = value
-
+        return self
 
 class Configuration(object):
 

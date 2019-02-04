@@ -21,12 +21,22 @@ class Expr(object):
 
 
 class Predicate(Expr):
-    def apply_conf(self, binding):
+    def apply_conf(self, conf):
         raise NotImplementedError;
 
     def negate(self):
         raise NotImplementedError;
-
+    
+    def collect_outputs(self):
+        ret = []
+        if self.left is not None:
+            if isinstance(self.left, Output):
+                ret.append[self.left]
+        if self.right is not None:
+            if isinstance(self.right, Output):
+                ret.append[self.right]
+        return ret
+                
     pass
 
 
@@ -264,10 +274,10 @@ class Implies(Expr):
     def collect_binding(self):
         return self.left.collect_binding() + self.right.collect_binding()
 
-    def apply_conf(self, binding):
+    def apply_conf(self, conf):
         left = self.left
         right = self.right
-        return BoundedImplies(left.apply_conf(binding), right.apply_conf(binding))
+        return BoundedImplies(left.apply_conf(conf), right.apply_conf(conf))
 
     def __repr__(self):
         return " %s  ->   %s  " % (self.left.__repr__(), self.right.__repr__())

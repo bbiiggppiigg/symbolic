@@ -1,7 +1,8 @@
 from macros.actions import OutputAssignment, OutputAssignments, Range, OutputActionList
 from macros.exceptions import UnsatisfiableAssignmentException, UnsatisfiableActionException
-from macros.types import Value
-from macros.variables import Output
+from macros.types import Value , Bool
+from macros.variables import Output , Input
+from macros.binding import Filter
 
 """
     What should apply returns ?
@@ -17,7 +18,11 @@ class BoundedExpr(object):
 class BoundedPredicate(BoundedExpr):
     def apply(self, pkt):
         raise NotImplementedError;
-
+    
+    def get_filter(self):
+        if isinstance(self.left,Output):
+            return Filter({self.left:self.right})
+        return Filter({})
 
 class BoundedLEQ(BoundedPredicate):
 
@@ -165,10 +170,11 @@ class BoundedEQ(BoundedPredicate):
         left = self.left
         right = self.right
 
-        # print("haha %s == %s" % (left, right))
-        if left in pkt.binding.keys():
+        #print("haha %s == %s" % (left, right))
+        #print pkt.binding.keys()
+        if isinstance (left,Input) and left in pkt.binding.keys():
             left = pkt.binding[left]
-        if right in pkt.binding.keys():
+        if isinstance(right,Input) and right in pkt.binding.keys():
             right = pkt.binding[right]
         # print("haha %s == %s" % (left, right))
         if isinstance(left, Output) and isinstance(right, Value):
@@ -213,7 +219,7 @@ class BoundedNEQ(BoundedPredicate):
 
     pass
 
-
+"""
 class Bool(object):
     def __init__(self, value):
         self.value = value
@@ -226,7 +232,7 @@ class Bool(object):
 
     def __nonzero__(self):
         return self.value
-
+"""
 
 class BoundedMatch(BoundedExpr):
 
@@ -267,7 +273,10 @@ class BoundedAction(BoundedExpr):
             return OutputAssignments(ret)
         except UnsatisfiableAssignmentException:
             raise UnsatisfiableActionException
-
+    
+    def get_filter(self):
+        assert len(self.assign_list) == 1
+        return self.assign_list[0].get_filter()
 
 class BoundedGuard(BoundedExpr):
 
@@ -291,7 +300,9 @@ class BoundedActionList(BoundedExpr):
 
     def __init__(self, action_list):
         self.action_list = action_list
-
+    def get_filter(self):
+        assert len(self.action_list) == 1
+        return self.action_list[0].get_filter()
     def apply(self, pkt):
         ret = []
         for action in self.action_list:

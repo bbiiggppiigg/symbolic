@@ -4,7 +4,7 @@ from __future__ import (absolute_import, division,
 from builtins import super
 
 from macros.exceptions import UnexpectedInputException, UnexpectedOutputException, DuplicateNameException
-from macros.types import IPAddr, IPProto, Mac, Port, EthType
+from macros.types import IPAddr, IPProto, Mac, Port, EthType , Bool
 
 
 class Variable(object):
@@ -80,7 +80,7 @@ class StateVar(Variable):
 
 
 class FreeVariable(Variable):
-    builtin = {"IPAddr": IPAddr, "Mac": Mac, "IPProto": IPProto, "Port": Port}
+    builtin = {"IPAddr": IPAddr, "Mac": Mac, "IPProto": IPProto, "Port": Port , "Bool" : Bool}
 
     def __init__(self, name, type_str):
         if name in Input.builtin.keys() or name in Output.builtin.keys():

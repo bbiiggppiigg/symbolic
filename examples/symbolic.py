@@ -11,7 +11,7 @@ reactions = list()
 sv= StateVar("block",Bool,False)
 state_var_list.append(sv)
 
-
+"""
 prec1 = Precedence(
             Match([EQ(Input("ip4Src"),IPAddr("10.0.0.2"))]),
             ActionList(
@@ -21,6 +21,17 @@ prec1 = Precedence(
                 )
         
 )
+"""
+prec1 = Precedence(
+            Match([EQ(Input("port_id"),FreeVariable("X","Port"))]),
+            ActionList(
+                [
+                    Action  (
+                        [EQ(Output("port_id_out"),FreeVariable("X","Port"))]
+                        )
+                ]
+            )
+        )
 
 precedences.append(prec1)
 react1 = Reaction(

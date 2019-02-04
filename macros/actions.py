@@ -4,9 +4,7 @@ from macros.binding import Filter
 from macros.exceptions import InvalidRangeException, UnsatisfiableAssignmentException, UnsatisfiableActionException
 from macros.variables import Output
 
-
 class Range(object):
-    concrete: set
 
     def __init__(self, min_value, max_value, care=True):
         if min_value > max_value:
@@ -36,17 +34,61 @@ class Range(object):
 
     def get_action(self):
         # return random.randrange(self.min_value, self.max_value + 1)
-        return random.choice(self.concrete)
+        print self.concrete
+        return random.choice(tuple(self.concrete))
+
 
     def filter_output(self, values):
-        self.concrete = self.concrete.intersection(values)
-        if self.concrete == set():
+        ret = self.concrete.intersection(values)
+
+        print "after filter",self.concrete 
+        if ret == set():
             raise InvalidRangeException
+        return ret
+
+
+class FilteredRange(object):
+
+    def __init__(self, concrete):
+
+        self.concrete = concrete
+
+    def __mul__(self, other):
+        return FilteredRange(self.concrete.intersection(other.concrete))
+
+    def __imul__(self, other):
+        self.concrete = self.concrete.intersection(other.concrete)
+
+    def __repr__(self):
+        return " %s " % (self.concrete)
+
+    def get_action(self):
+        # return random.randrange(self.min_value, self.max_value + 1)
+        return random.choice(tuple(self.concrete.intersection(values)))
+
+
+
+    def filter_output(self, values):
+        ret = self.concrete.intersection(values)
+        if ret == set():
+            raise InvalidRangeException
+        return ret
 
 
 # Port = [[1,3] | [4,6] | [7,9]  ]
 
 class OutputAssignment(object):
+    
+    def get_filter(self):
+        denied = set()
+        for myrange in self.ranges:
+            denied = denied.union(myrange.concrete)
+        universe = set(range(Output.builtin[self.left.name].min_value,Output.builtin[self.left.name].max_value+1))
+        allowed  =  universe- denied
+        ret = dict()
+        ret[self.left]=allowed
+        return Filter(ret)
+
     def __init__(self, left, right):
         if len(right) == 0:
             raise UnsatisfiableAssignmentException
@@ -60,15 +102,16 @@ class OutputAssignment(object):
         for myrange in self.ranges:
             try:
                 filtered_range = myrange.filter_output(values)
-                ret.append(filtered_range)
+                ret.append(myrange)
             except InvalidRangeException:
                 continue
         if len(ret) == 0:
             raise UnsatisfiableAssignmentException
-
-        self.ranges = ret
+        
+        return OutputAssignment(self.left,ret)
 
     def get_action(self):
+        #print self.ranges[0].get_action()
         return Output.builtin[self.left.name].to_output(random.choice(self.ranges).get_action())
 
     def __mul__(self, other):
@@ -117,14 +160,22 @@ class OutputAssignment(object):
 class OutputAssignments(object):
     default_list = dict()
 
-    def filter_output(self, action_filter: Filter):
-        for key, value in action_filter.binding.items():
+    def get_filter(self):
+        assert (len(self.assignment_dict.keys()) == 1)
+        return self.assignment_dict[self.assignment_dict.keys()[0]].get_filter()
+
+    def filter_output(self, action_filter):
+        ret = list() 
+        for key, value in self.assignment_dict.items():
             try:
-                if key in self.assignment_dict:
-                    self.assignment_dict[key].filter_output(value)
+                if key in action_filter.binding:
+                    ret.append(value.filter_output(action_filter.binding[key]))
+                else:
+                    ret.append(value)
             except UnsatisfiableAssignmentException:
                 raise UnsatisfiableActionException
 
+        return OutputAssignments(ret)
     # ey: str
     # alue: Variable
 
@@ -204,8 +255,14 @@ pass
 
 class OutputActionList(object):
 
+    def get_filter(self):
+        assert (len(self.assignment_list)==1)
+        return self.assignment_list[0].get_filter()
+
     def filter_output(self, action_filter):
         if self.unsat:
+            return self
+        if len(self.assignment_list) ==0 :
             return self
 
         ret = []
