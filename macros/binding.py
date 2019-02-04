@@ -32,6 +32,11 @@ class Packet(object):
                 self.ipProto.__hash__() + self.vlan.__hash__() + self.tcpSrcPort.__hash__() + "Packet".__hash__())
 
 
+"""
+    A dictionary of mapping from input variables to their value
+"""
+
+
 class InputBinding(object):
 
     def __init__(self, pkt, port_id, state_var_list):
@@ -56,6 +61,11 @@ class InputBinding(object):
 
         for _, sv in state_var_list:
             self.binding[Input(sv.name)] = sv.vartype(sv.value)
+
+
+"""
+    A dictionary from free variables to their corresponding input variable
+"""
 
 
 class FVS(object):
@@ -83,32 +93,38 @@ class FVS(object):
 
 
 """
-    Binding :
-    X -> SrcMac
-    P -> Port
-
-    Packet:
-    SrcMac -> "ff:ff:ff:00:00:00"
-    Port -> 100
+    Filter : 
+        forcing the assignment to an output_variable to be limited to some set of value
+    Filter.binding = 
+        dict[ OutputVariable ] -> Set( integers )
+    
+    Note:
+    1. output variables that are not in the dict are not enforced
+    2. Filter 1 + Filter 2 = union of allowed values. In other words, they should have same set of keys
+    
+    
 """
 
 
 class Filter(object):
-    
+
     def __repr__(self):
-        return "Filter( %s ) " % self.binding.__repr__() 
+        return "Filter( %s ) " % self.binding.__repr__()
+
     def __init__(self, binding_dict):
         self.binding = dict()
         for key, value in binding_dict.items():
             if value is not None:
-                self.binding[key] = set([value.get_value()])
+                self.binding[key] = {value.get_value()}
             else:
                 self.binding[key] = set()
-        #print "creating filter"
-        #print self.binding
+        # print "creating filter"
+        # print self.binding
 
     def __add__(self, other):
         ret = dict()
+        assert (self.binding == dict() or set(self.binding.keys()) == set(other.binding.keys()))
+
         for key, value in self.binding.items():
             ret[key] = value
         for key, value in other.binding.items():
@@ -116,9 +132,12 @@ class Filter(object):
                 ret[key] = ret[key].union(value)
             else:
                 ret[key] = value
+
         return Filter(ret)
 
     def __iadd__(self, other):
+
+        assert (self.binding == dict() or set(self.binding.keys()) == set(other.binding.keys()))
         for key, value in other.binding.items():
             if key in self.binding:
                 self.binding[key] = self.binding[key].union(value)
@@ -145,6 +164,7 @@ class Filter(object):
                 self.binding[key] = value
         return self
 
+
 class Configuration(object):
 
     def __init__(self, binding, pkt):
@@ -167,6 +187,3 @@ class Configuration(object):
 
     def __hash__(self):
         return self.binding.__hash__()
-
-    def get_filter(self):
-        return Filter(self.binding)

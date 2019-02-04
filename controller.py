@@ -2,6 +2,8 @@ import frenetic
 from frenetic.packet import *
 from frenetic.syntax import *
 
+# from examples.static import invariants, reactions, precedences, state_var_list
+from examples.symbolic import invariants, reactions, precedences, state_var_list
 from macros.actions import OutputActionList
 from macros.binding import InputBinding, Filter
 from macros.bounded_expression import Bool
@@ -11,9 +13,6 @@ from macros.exceptions import UnsatisfiableActionException
 # from examples.stateful import invariants, reactions, precedences
 # from examples.combine import invariants, reactions, precedences
 # from examples.conflict import invariants, reactions, precedences , state_var_list
-
-#from examples.static import invariants, reactions, precedences, state_var_list
-from examples.symbolic import invariants, reactions, precedences, state_var_list
 
 
 class StateVariables(object):
@@ -56,41 +55,43 @@ class ActivatedPrecedences(object):
 
     def __init__(self, precedes):
         self.records = dict()
-        self.symbolics = filter(lambda prec: prec.symbolic, precedes )
-        self.concretes = filter(lambda prec: prec.symbolic == False, precedes )
-        
-        #print len(self.symbolics)
-        #print len(self.concretes)
+        self.symbolics = filter(lambda prec: prec.symbolic, precedes)
+        self.concretes = filter(lambda prec: prec.symbolic == False, precedes)
+
+        # print len(self.symbolics)
+        # print len(self.concretes)
         for prec in self.symbolics:
             self.records[prec] = Filter({})
 
     def record(self, input_binding):
         res = []
         for prec in self.concretes:
-            conf = prec.get_configuration(input_binding)
-            if prec.happen(conf,input_binding):
-                print "removing concrete precedence"
-                pass
+            if prec.happen(input_binding):
+                print
+                "removing concrete precedence"
+
             else:
                 res.append(prec)
         self.concretes = res
 
         for prec in self.symbolics:
-            conf = prec.get_configuration(input_binding)
-            if prec.happen(conf, input_binding):
-                print "recording"
-                self.records[prec] += prec.after.apply_conf(conf).get_filter()
-                print "filter for prec = ",prec," is ",self.records[prec]
+            if prec.happen(input_binding):
+                print
+                "recording"
+                self.records[prec] += prec.get_filter()
+                print
+                "filter for prec = ", prec, " is ", self.records[prec]
+
     def get_filter(self):
         ret = Filter({})
         for prec in self.concretes:
-            #print prec
             ret *= prec.get_filter()
 
         for prec in self.symbolics:
             ret *= self.records[prec];
 
-        print "filter = ",ret.binding
+        print
+        "filter = ", ret.binding
         return ret
 
 
@@ -136,6 +137,8 @@ ActiveInvariants = ActivatedInvariants(invariants)
 ActiveSVs = StateVariables(state_var_list)
 
 counter = 0
+
+
 class RepeaterApp(frenetic.App):
 
     def __init__(self):
@@ -151,47 +154,54 @@ class RepeaterApp(frenetic.App):
 
     def packet_in(self, dpid, port_id, payload):
         global counter
-        print "pkt_count =",counter
+        print
+        "pkt_count =", counter
         counter += 1
         actions = []  # SetPort([1, 2, 3, 4, 5])
         pkt = Packet.from_payload(dpid, port_id, payload)
-        print pkt
+        print
+        pkt
         input_binding = InputBinding(pkt, port_id, list(ActiveSVs.records.items()))
         # print input_binding
         ActivePrecedences.record(input_binding)
         ActiveReactions.clear(input_binding)
 
         OA = OutputActionList([])
-        print OA.unsat
+        print
+        OA.unsat
         try:
             oas = ActiveInvariants.get_assignments(input_binding)
             for oa in oas:
-                #print("before update oa = ", OA ,"rhs = ", oa)
+                # print("before update oa = ", OA ,"rhs = ", oa)
                 OA = OA * oa
-               # print("after update oa = ", OA)
+            # print("after update oa = ", OA)
         except UnsatisfiableActionException:
             print
             "no satisfying assignment"
             raise Exception("QQ")
-        print OA.unsat
+        print
+        OA.unsat
         try:
             oas = ActiveReactions.get_assignments(input_binding)
             for oa in oas:
-                #print("before update oa = ", OA ,"rhs = ", oa)
+                # print("before update oa = ", OA ,"rhs = ", oa)
                 OA = OA * oa
-                #print("after update oa = ", OA)
+                # print("after update oa = ", OA)
         except UnsatisfiableActionException:
             print
             "no satisfying assignment"
             raise Exception("QQ")
-        print "before filter",OA.get_action()
-        print OA.unsat
+        print
+        "before filter", OA.get_action()
+        print
+        OA.unsat
         try:
             action_filter = ActivePrecedences.get_filter()
             OA = OA.filter_output(action_filter)
         except UnsatisfiableActionException:
             raise Exception("QQ")
-        print OA.unsat
+        print
+        OA.unsat
         # Update Activated Reactions and Precedences
         ActiveReactions.activate(input_binding)
         # print("final oa = ", OA)

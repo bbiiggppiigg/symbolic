@@ -1,11 +1,10 @@
-from macros.binding import Configuration , Filter,InputBinding
-from macros.expression import Match, Implies
+from macros.binding import Configuration, InputBinding
 
 
 class Macro(object):
 
-    def get_configuration(self, input_binding):
-        return Configuration(self.binding, input_binding)
+    def get_configuration(self, pkt):
+        return Configuration(self.binding, pkt)
 
     pass
 
@@ -23,31 +22,45 @@ class Invariant(Macro):
 
 
 class Precedence(Macro):
-    def __init__(self, before, after ) :
+    def __init__(self, before, after, binding, symbolic):
         self.before = before
         self.after = after
-        self.binding = self.before.collect_binding()
-        if self.binding.binding == dict():
-            self.symbolic = False
-        else:
-            self.symbolic = True
+        self.binding = binding
+        self.symbolic = symbolic
 
     def happen(self, conf, input_binding):
         ret = self.before.apply_conf(conf).apply(input_binding)
-        if ret:
-            return True
-        return False
-    
-    def collect_outputs(self):
-        return self.after.collect_outputs()
-        
-    def get_filter(self):
-        assert (self.symbolic == False)
-        input_binding = InputBinding(None,0,[])
-        return self.after.apply_conf(Configuration(input_binding,None)).apply(input_binding).get_filter()
+        return ret
+
+    @classmethod
+    def create(cls, before, after):
+        binding = before.collect_binding()
+        if binding == dict():
+            return ConcretePrecedence(before, after, binding)
+        else:
+            return SymbolicPrecedence(before, after, binding)
 
     def __repr__(self):
-        return " Precedence ( %s , %s ) " % (self.before.__repr__(),self.after.__repr__())
+        return " Precedence ( %s , %s ) " % (self.before.__repr__(), self.after.__repr__())
+
+
+class ConcretePrecedence(Precedence):
+    def __init__(self, before, after, binding):
+        super().__init__(before, after, binding, False)
+
+    def get_filter(self):
+        input_binding = InputBinding(None, 0, [])
+        return self.after.apply_conf(Configuration(input_binding, None)).apply(input_binding).get_filter()
+
+
+class SymbolicPrecedence(Precedence):
+    def __init__(self, before, after, binding):
+        super().__init__(before, after, binding, True)
+
+    def get_filter(self, input_binding):
+        conf = self.get_configuration(input_binding)
+        return self.after.apply_conf(conf).get_filter()
+
 
 class Reaction(Macro):
     def __init__(self, start, policy, end):

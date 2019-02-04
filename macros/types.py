@@ -74,10 +74,12 @@ class Mac(Value):
     def to_output(cls, value):
         return int_mac2str(value)
 
+
 class Bool(Value):
-    min_value = 0 
+    min_value = 0
     max_value = 1
-    def __init__(self,truth):
+
+    def __init__(self, truth):
         value = 1 if truth else 0
         self.value = value
 
@@ -91,6 +93,7 @@ class Bool(Value):
 
     def __nonzero__(self):
         return self.value == 1
+
 
 class Port(Value):
     min_value = 0
