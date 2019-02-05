@@ -1,6 +1,6 @@
 import copy
 
-from macros.types import IPAddr, Mac, Vlan, PriorityCode, IPProto, Port, TCPPort, EthType
+from macros.types import IPAddr, Mac, Vlan, PriorityCode, IPProto, Port, TCPPort, EthType ,Value
 from macros.variables import Input
 
 
@@ -115,7 +115,10 @@ class Filter(object):
         self.binding = dict()
         for key, value in binding_dict.items():
             if value is not None:
-                self.binding[key] = {value.get_value()}
+                if isinstance(value,Value):
+                    self.binding[key] = {value.get_value()}
+                if isinstance(value,set):
+                    self.binding[key] = value
             else:
                 self.binding[key] = set()
         # print "creating filter"

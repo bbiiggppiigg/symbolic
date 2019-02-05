@@ -22,13 +22,19 @@ prec1 = Precedence(
         
 )
 """
-prec1 = Precedence(
+
+print Match([EQ(Input("port_id"),FreeVariable("X","Port"))]),
+print ActionList(
+                [
+                    Action  ([EQ(Output("port_id_out"),FreeVariable("X","Port"))])
+                ]
+            )
+
+prec1 = Precedence.create(
             Match([EQ(Input("port_id"),FreeVariable("X","Port"))]),
             ActionList(
                 [
-                    Action  (
-                        [EQ(Output("port_id_out"),FreeVariable("X","Port"))]
-                        )
+                    Action  ([EQ(Output("port_id_out"),FreeVariable("X","Port"))])
                 ]
             )
         )

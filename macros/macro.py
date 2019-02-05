@@ -1,6 +1,5 @@
 from macros.binding import Configuration, InputBinding
-
-
+from builtins import super
 class Macro(object):
 
     def get_configuration(self, pkt):
@@ -28,14 +27,15 @@ class Precedence(Macro):
         self.binding = binding
         self.symbolic = symbolic
 
-    def happen(self, conf, input_binding):
+    def happen(self,input_binding):
+        conf = self.get_configuration(input_binding)
         ret = self.before.apply_conf(conf).apply(input_binding)
         return ret
 
     @classmethod
     def create(cls, before, after):
         binding = before.collect_binding()
-        if binding == dict():
+        if binding.binding == dict():
             return ConcretePrecedence(before, after, binding)
         else:
             return SymbolicPrecedence(before, after, binding)

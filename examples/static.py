@@ -12,7 +12,7 @@ sv= StateVar("block",Bool,False)
 state_var_list.append(sv)
 
 
-prec1 = Precedence(
+prec1 = Precedence.create(
             Match([EQ(Input("ip4Src"),IPAddr("10.0.0.2"))]),
             ActionList(
                 [
