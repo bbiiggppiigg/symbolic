@@ -1,6 +1,6 @@
 from macros.expression import Implies, Match, ActionList, EQ, GT, NEQ, Action
 from macros.types import IPAddr, Port , Bool
-from macros.variables import Input, Output, FreeVariable, StateVar
+from macros.variables import Input, Output, FreeVariable, StateVar, SymbolicStateVar
 from macros.macro import Invariant, Precedence, Reaction
 
 state_var_list = list()

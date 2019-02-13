@@ -28,6 +28,10 @@ class StateVariables(object):
         pass
 
 
+class SymbolicStateVariables(object):
+    def __init__(self,symbolic_state_var_list):
+        self.records = dict()
+
 class ActivatedInvariants(object):
 
     def __init__(self, invars):

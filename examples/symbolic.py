@@ -1,6 +1,6 @@
 from macros.expression import Implies, Match, ActionList, EQ, GT, NEQ, Action
 from macros.types import IPAddr, Port , Bool
-from macros.variables import Input, Output, FreeVariable, StateVar
+from macros.variables import Input, Output, FreeVariable, StateVar, SymbolicStateVar
 from macros.macro import Invariant, Precedence, Reaction
 
 state_var_list = list()
@@ -10,7 +10,7 @@ reactions = list()
 
 sv= StateVar("block",Bool,False)
 state_var_list.append(sv)
-
+ssv = SymbolicStateVar("blocked_ip",IPAddr,Bool,False)
 """
 prec1 = Precedence(
             Match([EQ(Input("ip4Src"),IPAddr("10.0.0.2"))]),
@@ -23,13 +23,15 @@ prec1 = Precedence(
 )
 """
 
-print Match([EQ(Input("port_id"),FreeVariable("X","Port"))]),
+#print Match([EQ(Input("port_id"),FreeVariable("X","Port"))])
+#print Match([EQ(Input("port_id"),FreeVariable("X","Port"))])
+"""
 print ActionList(
                 [
                     Action  ([EQ(Output("port_id_out"),FreeVariable("X","Port"))])
                 ]
             )
-
+"""
 prec1 = Precedence.create(
             Match([EQ(Input("port_id"),FreeVariable("X","Port"))]),
             ActionList(
