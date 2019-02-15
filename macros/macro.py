@@ -1,44 +1,46 @@
-from macros.binding import Configuration, InputBinding
+from macros.binding import MapFVValue, MapInputValue
 from builtins import super
+
+
+
+def get_fv_value_mapping(fvs, pkt):
+    return MapFVValue(fvs, pkt)
+
 class Macro(object):
-
-    def get_configuration(self, pkt):
-        return Configuration(self.binding, pkt)
-
     pass
 
 
 class Invariant(Macro):
     def __init__(self, expr):
         self.expr = expr
-        self.binding = self.expr.collect_binding()
+        self.fvs = self.expr.collect_fv_input_mapping()
 
-    def apply(self, input_binding):
-        conf = self.get_configuration(input_binding)
-        ret = self.expr.apply_conf(conf).apply(input_binding)
+    def apply(self, pkt):
+        conf = MapFVValue(self.fvs,pkt)
+        ret = self.expr.instantiate_fvs(conf).apply(pkt)
 
         return ret
 
 
 class Precedence(Macro):
-    def __init__(self, before, after, binding, symbolic):
+    def __init__(self, before, after, fvs, symbolic):
         self.before = before
         self.after = after
-        self.binding = binding
+        self.fvs = fvs
         self.symbolic = symbolic
 
-    def happen(self,input_binding):
-        conf = self.get_configuration(input_binding)
-        ret = self.before.apply_conf(conf).apply(input_binding)
+    def happen(self, pkt):
+        conf =  MapFVValue(self.fvs,pkt)
+        ret = self.before.instantiate_fvs(conf).apply(pkt)
         return ret
 
     @classmethod
     def create(cls, before, after):
-        binding = before.collect_binding()
-        if binding.binding == dict():
-            return ConcretePrecedence(before, after, binding)
+        fvs = before.collect_fv_input_mapping()
+        if fvs.mapping == dict():
+            return ConcretePrecedence(before, after, fvs)
         else:
-            return SymbolicPrecedence(before, after, binding)
+            return SymbolicPrecedence(before, after, fvs)
 
     def __repr__(self):
         return " Precedence ( %s , %s ) " % (self.before.__repr__(), self.after.__repr__())
@@ -49,17 +51,17 @@ class ConcretePrecedence(Precedence):
         super().__init__(before, after, binding, False)
 
     def get_filter(self):
-        input_binding = InputBinding(None, 0, [])
-        return self.after.apply_conf(Configuration(input_binding, None)).apply(input_binding).get_filter()
+        input_binding = MapInputValue(None, 0, [])
+        return self.after.instantiate_fvs(MapFVValue(input_binding, None)).apply(input_binding).get_filter()
 
 
 class SymbolicPrecedence(Precedence):
     def __init__(self, before, after, binding):
         super().__init__(before, after, binding, True)
 
-    def get_filter(self, input_binding):
-        conf = self.get_configuration(input_binding)
-        return self.after.apply_conf(conf).get_filter()
+    def get_filter(self, pkt):
+        conf = MapFVValue(self.fvs,pkt)
+        return self.after.instantiate_fvs(conf).get_filter()
 
 
 class Reaction(Macro):
@@ -67,9 +69,9 @@ class Reaction(Macro):
         self.start = start
         self.policy = policy
         self.end = end
-        self.binding = self.start.collect_binding()
-        policy_binding = policy.collect_binding()
-        end_binding = end.collect_binding()
+        self.binding = self.start.collect_fv_input_mapping()
+        policy_binding = policy.collect_fv_input_mapping()
+        end_binding = end.collect_fv_input_mapping()
 
         for k in policy_binding.binding.keys():
             if k not in self.binding.binding.keys():
@@ -82,10 +84,10 @@ class Reaction(Macro):
         self.policy_binding = policy_binding
         self.end_binging = end_binding
 
-    def get_actions(self, input_binding):
-        conf = self.get_configuration(input_binding)
-        match = self.policy.left.apply_conf(conf).apply(input_binding)
-        action = self.policy.right.apply_conf(conf).apply(input_binding)
+    def get_actions(self, pkt):
+        conf = MapFVValue(self.binding, pkt)
+        match = self.policy.left.instantiate_fvs(conf).apply(pkt)
+        action = self.policy.right.instantiate_fvs(conf).apply(pkt)
         ands = match
         cond = True
         for expr in ands.expr_list:

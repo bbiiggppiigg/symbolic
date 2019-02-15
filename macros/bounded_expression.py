@@ -80,7 +80,8 @@ class BoundedGEQ(BoundedPredicate):
             left = pkt.binding[left]
         if right in pkt.binding.keys():
             right = pkt.binding[right]
-
+        left = pkt.apply(self.left)
+        right = pkt.apply(self.right)
         if isinstance(left, Output) and isinstance(right, Value):
             return OutputAssignment(left, self.get_range())
         elif isinstance(left, Value) and isinstance(right, Value):

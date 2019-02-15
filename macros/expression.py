@@ -1,4 +1,4 @@
-from macros.binding import FVS
+from macros.binding import MapFVInput
 from macros.bounded_expression import BoundedImplies, BoundedAction, BoundedMatch, \
     BoundedEQ, BoundedGT, BoundedLT, BoundedNEQ, BoundedActionList, BoundedGuard, BoundedGEQ, BoundedLEQ
 from macros.variables import Input, FreeVariable
@@ -10,18 +10,18 @@ from macros.variables import Input, FreeVariable
 
 
 class Expr(object):
-    def collect_binding(self):
-        return FVS()
+    def collect_fv_input_mapping(self):
+        return MapFVInput()
         pass
 
-    def apply_conf(self, conf):
+    def instantiate_fvs(self, fv_input_mapping):
         raise NotImplementedError
 
     pass
 
 
 class Predicate(Expr):
-    def apply_conf(self, conf):
+    def instantiate_fvs(self, fv_input_mapping):
         raise NotImplementedError;
 
     def negate(self):
@@ -36,13 +36,17 @@ class LEQ(Predicate):
         self.left = left
         self.right = right
 
-    def apply_conf(self, conf):
+    def instantiate_fvs(self, fv_input_mapping):
         left = self.left
         right = self.right
         if isinstance(self.left, FreeVariable):
-            left = conf.binding[self.left]
+            left = fv_input_mapping.binding[self.left]
         if isinstance(self.right, FreeVariable):
-            right = conf.binding[self.right]
+            right = fv_input_mapping.binding[self.right]
+        if isinstance(left, Input) and left.is_symbolic:
+            left = Input(left.name, fv_input_mapping.binding[left.fv])
+        if isinstance(right, Input) and right.is_symbolic:
+            left = Input(right.name, fv_input_mapping.binding[right.fv])
         return BoundedLEQ(left, right)
 
     def negate(self):
@@ -55,13 +59,17 @@ class GEQ(Predicate):
         self.left = left
         self.right = right
 
-    def apply_conf(self, conf):
+    def instantiate_fvs(self, fv_input_mapping):
         left = self.left
         right = self.right
         if isinstance(self.left, FreeVariable):
-            left = conf.binding[self.left]
+            left = fv_input_mapping.binding[self.left]
         if isinstance(self.right, FreeVariable):
-            right = conf.binding[self.right]
+            right = fv_input_mapping.binding[self.right]
+        if isinstance(left, Input) and left.is_symbolic:
+            left = Input(left.name, fv_input_mapping.binding[left.fv])
+        if isinstance(right, Input) and right.is_symbolic:
+            left = Input(right.name, fv_input_mapping.binding[right.fv])
         return BoundedGEQ(left, right)
 
     def negate(self):
@@ -74,13 +82,17 @@ class GT(Predicate):
         self.left = left
         self.right = right
 
-    def apply_conf(self, conf):
+    def instantiate_fvs(self, fv_input_mapping):
         left = self.left
         right = self.right
         if isinstance(self.left, FreeVariable):
-            left = conf.binding[self.left]
+            left = fv_input_mapping.binding[self.left]
         if isinstance(self.right, FreeVariable):
-            right = conf.binding[self.right]
+            right = fv_input_mapping.binding[self.right]
+        if isinstance(left, Input) and left.is_symbolic:
+            left = Input(left.name, fv_input_mapping.binding[left.fv])
+        if isinstance(right, Input) and right.is_symbolic:
+            left = Input(right.name, fv_input_mapping.binding[right.fv])
         return BoundedGT(left, right)
 
     def __repr__(self):
@@ -96,13 +108,17 @@ class LT(Predicate):
         self.left = left
         self.right = right
 
-    def apply_conf(self, conf):
+    def instantiate_fvs(self, fv_input_mapping):
         left = self.left
         right = self.right
         if isinstance(self.left, FreeVariable):
-            left = conf.binding[self.left]
+            left = fv_input_mapping.binding[self.left]
         if isinstance(self.right, FreeVariable):
-            right = conf.binding[self.right]
+            right = fv_input_mapping.binding[self.right]
+        if isinstance(left, Input) and left.is_symbolic:
+            left = Input(left.name, fv_input_mapping.binding[left.fv])
+        if isinstance(right, Input) and right.is_symbolic:
+            left = Input(right.name, fv_input_mapping.binding[right.fv])
         return BoundedLT(left, right)
 
     def negate(self):
@@ -115,20 +131,24 @@ class EQ(Predicate):
         self.left = left
         self.right = right
 
-    def collect_binding(self):
+    def collect_fv_input_mapping(self):
         if isinstance(self.left, Input) and isinstance(self.right, FreeVariable):
-            return FVS(self.right, self.left)
+            return MapFVInput(self.right, self.left)
         if isinstance(self.left, FreeVariable) and isinstance(self.right, Input):
-            return FVS(self.left, self.right)
-        return FVS()
+            return MapFVInput(self.left, self.right)
+        return MapFVInput()
 
-    def apply_conf(self, conf):
+    def instantiate_fvs(self, fv_input_mapping):
         left = self.left
         right = self.right
         if isinstance(self.left, FreeVariable):
-            left = conf.binding[self.left]
+            left = fv_input_mapping.binding[self.left]
         if isinstance(self.right, FreeVariable):
-            right = conf.binding[self.right]
+            right = fv_input_mapping.binding[self.right]
+        if isinstance(left, Input) and left.is_symbolic:
+            left = Input(left.name, fv_input_mapping.binding[left.fv])
+        if isinstance(right, Input) and right.is_symbolic:
+            left = Input(right.name, fv_input_mapping.binding[right.fv])
         return BoundedEQ(left, right)
 
     def __repr__(self):
@@ -146,20 +166,25 @@ class NEQ(Predicate):
         self.left = left
         self.right = right
 
-    def collect_binding(self):
+    def collect_fv_input_mapping(self):
         if isinstance(self.left, Input) and isinstance(self.right, FreeVariable):
-            return FVS(self.right, self.left)
+            return MapFVInput(self.right, self.left)
         if isinstance(self.left, FreeVariable) and isinstance(self.right, Input):
-            return FVS(self.left, self.right)
-        return FVS()
+            return MapFVInput(self.left, self.right)
+        return MapFVInput()
 
-    def apply_conf(self, conf):
+    def instantiate_fvs(self, fv_input_mapping):
         left = self.left
         right = self.right
-        if isinstance(self.left, FreeVariable):
-            left = conf.binding[self.left]
-        if isinstance(self.right, FreeVariable):
-            right = conf.binding[self.right]
+        if isinstance(left, FreeVariable):
+            left = fv_input_mapping.binding[self.left]
+        if isinstance(right, FreeVariable):
+            right = fv_input_mapping.binding[self.right]
+        if isinstance(left, Input) and left.is_symbolic:
+            left = Input(left.name, fv_input_mapping.binding[left.fv])
+        if isinstance(right, Input) and right.is_symbolic:
+            left = Input(right.name, fv_input_mapping.binding[right.fv])
+
         return BoundedNEQ(left, right)
 
     def negate(self):
@@ -173,14 +198,14 @@ class Match(Expr):
     def __init__(self, expr_list):
         self.expr_list = expr_list
 
-    def collect_binding(self):
-        ret = FVS()
+    def collect_fv_input_mapping(self):
+        ret = MapFVInput()
         for expr in self.expr_list:
-            ret += expr.collect_binding()
+            ret += expr.collect_fv_input_mapping()
         return ret
 
-    def apply_conf(self, conf):
-        return BoundedMatch(list(map(lambda x: x.apply_conf(conf), self.expr_list)))
+    def instantiate_fvs(self, fv_input_mapping):
+        return BoundedMatch(list(map(lambda x: x.instantiate_fvs(fv_input_mapping), self.expr_list)))
 
     def __repr__(self):
         return "Match(%s)" % "".join(map(lambda x: x.__repr__(), self.expr_list))
@@ -196,14 +221,14 @@ class Guard(Expr):
     def __init__(self, assign_list):
         self.assign_list = assign_list
 
-    def collect_binding(self):
-        ret = FVS()
+    def collect_fv_input_mapping(self):
+        ret = MapFVInput()
         for expr in self.assign_list:
-            ret += expr.collect_binding()
+            ret += expr.collect_fv_input_mapping()
         return ret
 
-    def apply_conf(self, conf):
-        return BoundedGuard(list(map(lambda x: x.apply_conf(conf), self.assign_list)))
+    def instantiate_fvs(self, fv_input_mapping):
+        return BoundedGuard(list(map(lambda x: x.instantiate_fvs(fv_input_mapping), self.assign_list)))
 
     def __repr__(self):
         return "Action(%s)" % (",".join(map(lambda x: x.__repr__(), self.assign_list)))
@@ -220,14 +245,14 @@ class Action(Expr):
     def __init__(self, assign_list):
         self.assign_list = assign_list
 
-    def collect_binding(self):
-        ret = FVS()
+    def collect_fv_input_mapping(self):
+        ret = MapFVInput()
         for expr in self.assign_list:
-            ret += expr.collect_binding()
+            ret += expr.collect_fv_input_mapping()
         return ret
 
-    def apply_conf(self, conf):
-        return BoundedAction(list(map(lambda x: x.apply_conf(conf), self.assign_list)))
+    def instantiate_fvs(self, fv_input_mapping):
+        return BoundedAction(list(map(lambda x: x.instantiate_fvs(fv_input_mapping), self.assign_list)))
 
     def __repr__(self):
         return "Action(%s)" % (",".join(map(lambda x: x.__repr__(), self.assign_list)))
@@ -240,14 +265,14 @@ class ActionList(Expr):
     def __init__(self, action_list):
         self.action_list = action_list
 
-    def collect_binding(self):
-        ret = FVS()
+    def collect_fv_input_mapping(self):
+        ret = MapFVInput()
         for expr in self.action_list:
-            ret += expr.collect_binding()
+            ret += expr.collect_fv_input_mapping()
         return ret
 
-    def apply_conf(self, conf):
-        return BoundedActionList(list(map(lambda x: x.apply_conf(conf), self.action_list)))
+    def instantiate_fvs(self, fv_input_mapping):
+        return BoundedActionList(list(map(lambda x: x.instantiate_fvs(fv_input_mapping), self.action_list)))
 
     def __repr__(self):
         return "ActionList(%s)" % (",".join(map(lambda x: x.__repr__(), self.action_list)))
@@ -261,13 +286,13 @@ class Implies(Expr):
         self.left = left
         self.right = right
 
-    def collect_binding(self):
-        return self.left.collect_binding() + self.right.collect_binding()
+    def collect_fv_input_mapping(self):
+        return self.left.collect_fv_input_mapping() + self.right.collect_fv_input_mapping()
 
-    def apply_conf(self, conf):
+    def instantiate_fvs(self, fv_input_mapping):
         left = self.left
         right = self.right
-        return BoundedImplies(left.apply_conf(conf), right.apply_conf(conf))
+        return BoundedImplies(left.instantiate_fvs(fv_input_mapping), right.instantiate_fvs(fv_input_mapping))
 
     def __repr__(self):
         return " %s  ->   %s  " % (self.left.__repr__(), self.right.__repr__())

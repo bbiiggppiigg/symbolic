@@ -1,11 +1,12 @@
 import frenetic
 from frenetic.packet import *
 from frenetic.syntax import *
+# from macros.frenetic import *
 
-#from examples.static import invariants, reactions, precedences, state_var_list
+# from examples.static import invariants, reactions, precedences, state_var_list
 from examples.symbolic import invariants, reactions, precedences, state_var_list
 from macros.actions import OutputActionList
-from macros.binding import InputBinding, Filter
+from macros.binding import MapInputValue, Filter
 from macros.bounded_expression import Bool
 from macros.exceptions import UnsatisfiableActionException
 
@@ -29,8 +30,9 @@ class StateVariables(object):
 
 
 class SymbolicStateVariables(object):
-    def __init__(self,symbolic_state_var_list):
+    def __init__(self, symbolic_state_var_list):
         self.records = dict()
+
 
 class ActivatedInvariants(object):
 
@@ -42,8 +44,8 @@ class ActivatedInvariants(object):
 
         for inv in self.records:
 
-            conf = inv.get_configuration(input_binding)
-            rhs = inv.expr.apply_conf(conf).apply(input_binding)
+            conf = inv.get_fv_value_mapping(input_binding)
+            rhs = inv.expr.instantiate_fvs(conf).apply(input_binding)
             if type(rhs) == Bool:
                 if rhs.value:
                     pass
@@ -62,8 +64,8 @@ class ActivatedPrecedences(object):
         self.symbolics = filter(lambda prec: prec.symbolic, precedes)
         self.concretes = filter(lambda prec: prec.symbolic == False, precedes)
 
-        print len(self.symbolics)
-        print len(self.concretes)
+        print(len(self.symbolics))
+        print(len(self.concretes))
         for prec in self.symbolics:
             self.records[prec] = Filter({})
 
@@ -71,7 +73,7 @@ class ActivatedPrecedences(object):
         res = []
         for prec in self.concretes:
             if prec.happen(input_binding):
-                print "removing concrete precedence"
+                print("removing concrete precedence")
 
             else:
                 res.append(prec)
@@ -79,21 +81,21 @@ class ActivatedPrecedences(object):
 
         for prec in self.symbolics:
             if prec.happen(input_binding):
-                print "recording"
+                print("recording")
                 self.records[prec] += prec.get_filter(input_binding)
-                print "filter for prec = ", prec, " is ", self.records[prec]
+                print("filter for prec = ", prec, " is ", self.records[prec])
 
     def get_filter(self):
         ret = Filter({})
         for prec in self.concretes:
-            print prec
+            print(prec)
             ret *= prec.get_filter()
 
-        print "filter = ", ret.binding
+        print("filter = ", ret.binding)
         for prec in self.symbolics:
             ret *= self.records[prec];
 
-        print "filter = ", ret.binding
+        print("filter = ", ret.binding)
         return ret
 
 
@@ -107,15 +109,15 @@ class ActivatedReactions(object):
         for react, confs in self.record.items():
             new_confs = []
             for conf in confs:
-                if react.end.apply_conf(conf).apply(input_binding):
+                if react.end.instantiate_fvs(conf).apply(input_binding):
                     continue
                 new_confs.append(conf)
             self.record[react] = new_confs
 
     def activate(self, input_binding):
         for react in self.reactions:
-            conf = react.get_configuration(input_binding)
-            if react.start.apply_conf(conf).apply(input_binding):
+            conf = react.get_fv_value_mapping(input_binding)
+            if react.start.instantiate_fvs(conf).apply(input_binding):
                 if react not in self.record:
                     self.record[react] = list()
                 self.record[react].append(conf)
@@ -124,7 +126,7 @@ class ActivatedReactions(object):
         ret = []
         for react, confs in self.record.items():
             for conf in confs:
-                rhs = react.policy.apply_conf(conf).apply(input_binding)
+                rhs = react.policy.instantiate_fvs(conf).apply(input_binding)
                 if type(rhs) == Bool:
                     assert rhs.value
                     continue
@@ -156,18 +158,18 @@ class RepeaterApp(frenetic.App):
 
     def packet_in(self, dpid, port_id, payload):
         global counter
-        print "pkt_count =", counter
+        print("pkt_count =", counter)
         counter += 1
         actions = []  # SetPort([1, 2, 3, 4, 5])
         pkt = Packet.from_payload(dpid, port_id, payload)
-        print pkt
-        input_binding = InputBinding(pkt, port_id, list(ActiveSVs.records.items()))
+        print(pkt)
+        input_binding = MapInputValue(pkt, port_id, ActiveSVs.records)
         # print input_binding
         ActivePrecedences.record(input_binding)
         ActiveReactions.clear(input_binding)
 
         OA = OutputActionList([])
-        print OA.unsat
+        print(OA.unsat)
         try:
             oas = ActiveInvariants.get_assignments(input_binding)
             for oa in oas:
@@ -175,9 +177,9 @@ class RepeaterApp(frenetic.App):
                 OA = OA * oa
             # print("after update oa = ", OA)
         except UnsatisfiableActionException:
-            print "no satisfying assignment"
+            print("no satisfying assignment")
             raise Exception("QQ")
-        print OA.unsat
+        print(OA.unsat)
         try:
             oas = ActiveReactions.get_assignments(input_binding)
             for oa in oas:
@@ -185,15 +187,15 @@ class RepeaterApp(frenetic.App):
                 OA = OA * oa
                 # print("after update oa = ", OA)
         except UnsatisfiableActionException:
-            print "no satisfying assignment"
+            print("no satisfying assignment")
             raise Exception("QQ")
-        print "before filter, action = ", OA.get_action()
+        print("before filter, action = ", OA.get_action())
         try:
             action_filter = ActivePrecedences.get_filter()
             OA = OA.filter_output(action_filter)
         except UnsatisfiableActionException:
             raise Exception("QQ")
-        print OA.unsat
+        print(OA.unsat)
         # Update Activated Reactions and Precedences
         ActiveReactions.activate(input_binding)
         # print("final oa = ", OA)
@@ -205,7 +207,7 @@ class RepeaterApp(frenetic.App):
         for k, v in action.items():
             if k == "port_id_out":
                 # print "port = ",v
-                set_port.append(SetPort(v))  # TODO Check for Broadcaast Port
+                set_port.append(SetPort(v))  # TODO Check for Broadcast Port
             elif k == "ip4Dst_out":
                 actions.append(SetIP4Dst(v))
             elif k == "ip4Src_out":

@@ -1,7 +1,7 @@
 import copy
 
-from macros.types import IPAddr, Mac, Vlan, PriorityCode, IPProto, Port, TCPPort, EthType ,Value
-from macros.variables import Input
+from macros.types import IPAddr, Mac, Vlan, PriorityCode, IPProto, Port, TCPPort, EthType, Value
+from macros.variables import Input, StateVar, SymbolicStateVar
 
 
 class Packet(object):
@@ -37,9 +37,9 @@ class Packet(object):
 """
 
 
-class InputBinding(object):
+class MapInputValue(object):
 
-    def __init__(self, pkt, port_id, state_var_list):
+    def __init__(self, pkt, port_id, state_vars_dict):
         self.binding = dict()
         if pkt is not None:
             self.binding[Input('ethSrc')] = Mac(pkt.ethSrc)
@@ -59,8 +59,24 @@ class InputBinding(object):
                 self.binding[Input('tcpSrcPort')] = TCPPort(pkt.tcpSrcPort)
                 self.binding[Input('tcpSrcPort')] = TCPPort(pkt.tcpDstPort)
 
+        self.state_vars_dict = state_vars_dict
+        state_var_list = list(self.state_vars_dict.values())
         for _, sv in state_var_list:
             self.binding[Input(sv.name)] = sv.vartype(sv.value)
+
+    def apply(self, expr):
+        if isinstance(expr, Input):
+            if expr.is_symbolic:
+                expr.fv
+            else:
+                assert expr in self.binding
+                return self.binding[expr]
+        if isinstance(expr, StateVar):
+            assert expr.name in self.state_vars_dict
+            sv = self.state_vars_dict[expr.name]
+            return sv.vartype[sv.value]
+        if isinstance(expr, SymbolicStateVar):
+            pass
 
 
 """
@@ -68,26 +84,26 @@ class InputBinding(object):
 """
 
 
-class FVS(object):
+class MapFVInput(object):
 
     def __init__(self, fv=None, variable=None):
-        self.binding = dict()
+        self.mapping = dict()
         if fv is not None and variable is not None:
-            self.binding[fv] = variable
+            self.mapping[fv] = variable
 
     def __add__(self, other):
         ret = copy.deepcopy(self)
         for key, value in other.binding.items():
-            if key in ret.binding:
-                if ret.binding[key] != value:
+            if key in ret.mapping:
+                if ret.mapping[key] != value:
                     raise Exception("Binding Single Free Variable to Multiple Variable")
-            ret.binding[key] = value
+            ret.mapping[key] = value
 
         return ret
 
     def __repr__(self):
         to_print = "binding = "
-        for key, value in self.binding.items():
+        for key, value in self.mapping.items():
             to_print += ("%s,%s\t" % (key, value))
         return to_print
 
@@ -115,9 +131,9 @@ class Filter(object):
         self.binding = dict()
         for key, value in binding_dict.items():
             if value is not None:
-                if isinstance(value,Value):
+                if isinstance(value, Value):
                     self.binding[key] = {value.get_value()}
-                if isinstance(value,set):
+                if isinstance(value, set):
                     self.binding[key] = value
             else:
                 self.binding[key] = set()
@@ -168,25 +184,26 @@ class Filter(object):
         return self
 
 
-class Configuration(object):
+class MapFVValue(object):
 
-    def __init__(self, binding, pkt):
-        self.binding = dict()
+    def __init__(self, fv_to_input_var, pkt):
+        self.mapping = dict()
 
-        for key, value in binding.binding.items():
+        for fv, input_var in fv_to_input_var.mapping.items():
 
-            if value not in pkt.binding:
-                raise Exception("UnBounded Free Variable %s " % value)
-            self.binding[key] = pkt.binding[value]
+            if input_var not in pkt.mapping:
+                raise Exception("UnBounded Free Variable %s " % input_var)
+
+            self.mapping[fv] = pkt.mapping[input_var]
 
     def __repr__(self):
         ret = ""
-        for key, value in self.binding.items():
+        for key, value in self.mapping.items():
             ret += "(%s:%s),\t" % (key, value)
         return ret
 
     def __eq__(self, other):
-        return self.binding == other.binding
+        return self.mapping == other.mapping
 
     def __hash__(self):
-        return self.binding.__hash__()
+        return self.mapping.__hash__()
