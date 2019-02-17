@@ -110,13 +110,17 @@ class SymbolicStateVar(Variable):
         Input.add_var(name, var_type, True)
         Output.add_var(name + "_out", var_type, True)
 
-    def get(x):
+    def get(self,x):
         assert type(x) == self.domain_type
         if x in self.value:
+            print ("getting %s[%s] = %s"%(self.name,x,self.value[x]))
             return self.value[x]
+
+        print ("getting %s[%s] = %s"%(self.name,x,self.init_value))
         return self.init_value
 
     def update_value(self, x, value):
+        print ("updating %s[%s] to %s " % (self.name,x,value))
         self.value[x] = value
 
 

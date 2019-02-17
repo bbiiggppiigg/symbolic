@@ -169,15 +169,17 @@ class BoundedEQ(BoundedPredicate):
 
     def apply(self, pkt):
 
-        left = self.left
-        right = self.right
-
+        left = pkt.apply(self.left)
+        right = pkt.apply(self.right)
+        
         # print("haha %s == %s" % (left, right))
         # print pkt.binding.keys()
+        """
         if isinstance(left, Input) and left in pkt.binding.keys():
             left = pkt.binding[left]
         if isinstance(right, Input) and right in pkt.binding.keys():
             right = pkt.binding[right]
+        """
         # print("haha %s == %s" % (left, right))
         if isinstance(left, Output) and isinstance(right, Value):
             return OutputAssignment(left, self.get_range())

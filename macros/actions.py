@@ -149,11 +149,14 @@ class OutputAssignment(object):
         self.ranges = ret
 
     def __repr__(self):
+        if self.left.is_symbolic:
+            return " %s[%s]  =  %s " % (self.left.name,self.left.fv.__repr__(), self.ranges)
         return " %s  =  %s " % (self.left.name, self.ranges)
 
 
 """
     (Port_out = 5, True) and (IpProto_out = 2,False) and , ...    
+    Corresponds to a single action
 """
 
 
@@ -188,8 +191,12 @@ class OutputAssignments(object):
         # print self.assignment_dict
         for out, assign in self.assignment_dict.items():
             ret[out.name] = assign.get_action()
-        # print "ret = ",ret
-        return ret
+        
+        indices = dict()
+        for out in self.assignment_dict.keys():
+            if out.is_symbolic:
+               indices[out.name] = out.fv
+        return ret , indices
 
     def __init__(self, assignment_list):
 
@@ -299,7 +306,7 @@ class OutputActionList(object):
     def __mul__(self, other):
         mine = self.assignment_list
         its = other.assignment_list
-
+        print "mutiplying two", mine , its
         ret = []
         if self.unsat or other.unsat:
             return OutputActionList([], True)

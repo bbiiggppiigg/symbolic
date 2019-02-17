@@ -4,7 +4,7 @@ from frenetic.syntax import *
 # from macros.frenetic import *
 
 # from examples.static import invariants, reactions, precedences, state_var_list
-from examples.symbolic import invariants, reactions, precedences, state_var_list
+from examples.ssymbolic import invariants, reactions, precedences, state_var_list , symbolic_state_var_list
 from macros.actions import OutputActionList
 from macros.binding import MapInputValue, Filter
 from macros.bounded_expression import Bool
@@ -32,7 +32,14 @@ class StateVariables(object):
 class SymbolicStateVariables(object):
     def __init__(self, symbolic_state_var_list):
         self.records = dict()
-
+        for ssv in symbolic_state_var_list:
+            self.records[ssv.name] = ssv
+    
+    def update(self, new_dict ,indices):
+        for name in self.records.keys():
+            if name + "_out" in indices:
+                self.records[name].update_value(indices[name+"_out"],new_dict[name+"_out"])
+        
 
 class ActivatedInvariants(object):
 
@@ -45,6 +52,7 @@ class ActivatedInvariants(object):
         for inv in self.records:
 
             conf = inv.get_fv_value_mapping(input_binding)
+            print "config is ",conf.mapping
             rhs = inv.expr.instantiate_fvs(conf).apply(input_binding)
             if type(rhs) == Bool:
                 if rhs.value:
@@ -126,7 +134,10 @@ class ActivatedReactions(object):
         ret = []
         for react, confs in self.record.items():
             for conf in confs:
-                rhs = react.policy.instantiate_fvs(conf).apply(input_binding)
+                tmprhs = react.policy.instantiate_fvs(conf)
+                print "tmp rhs = ",tmprhs
+                rhs = tmprhs.apply(input_binding)
+                print "rhs =",rhs
                 if type(rhs) == Bool:
                     assert rhs.value
                     continue
@@ -139,9 +150,10 @@ ActiveReactions = ActivatedReactions(reactions)
 ActivePrecedences = ActivatedPrecedences(precedences)
 ActiveInvariants = ActivatedInvariants(invariants)
 ActiveSVs = StateVariables(state_var_list)
+ActiveSSVs = SymbolicStateVariables(symbolic_state_var_list)
 
 counter = 0
-
+ports = None
 
 class RepeaterApp(frenetic.App):
 
@@ -149,8 +161,10 @@ class RepeaterApp(frenetic.App):
         frenetic.App.__init__(self)
 
     def connected(self):
-        def handle_current_switches(swithces):
-            dpid = swithces.keys()[0]
+        def handle_current_switches(switches):
+            dpid  = switches.keys()[0]
+            global ports
+            ports = switches[dpid]
 
             self.update(id >> SendToController("repeater_app"))
 
@@ -163,7 +177,7 @@ class RepeaterApp(frenetic.App):
         actions = []  # SetPort([1, 2, 3, 4, 5])
         pkt = Packet.from_payload(dpid, port_id, payload)
         print(pkt)
-        input_binding = MapInputValue(pkt, port_id, ActiveSVs.records)
+        input_binding = MapInputValue(pkt, port_id, ActiveSVs.records , ActiveSSVs.records)
         # print input_binding
         ActivePrecedences.record(input_binding)
         ActiveReactions.clear(input_binding)
@@ -183,9 +197,9 @@ class RepeaterApp(frenetic.App):
         try:
             oas = ActiveReactions.get_assignments(input_binding)
             for oa in oas:
-                # print("before update oa = ", OA ,"rhs = ", oa)
+                print("before update oa = ", OA ,"rhs = ", oa)
                 OA = OA * oa
-                # print("after update oa = ", OA)
+                print("after update oa = ", OA)
         except UnsatisfiableActionException:
             print("no satisfying assignment")
             raise Exception("QQ")
@@ -200,14 +214,19 @@ class RepeaterApp(frenetic.App):
         ActiveReactions.activate(input_binding)
         # print("final oa = ", OA)
         # print "unsat ? ", OA.unsat
-        action = OA.get_action()
+        action,indices = OA.get_action()
         # print "action = ",action
         # raw_input("#")
         set_port = []
         for k, v in action.items():
             if k == "port_id_out":
                 # print "port = ",v
-                set_port.append(SetPort(v))  # TODO Check for Broadcast Port
+                if v > len(ports) + 1:
+                    print ("haven't learnt destination = %s , broadcasting"%pkt.ip4Dst)
+                    set_port.append(SetPort(ports))
+                else:
+                    print ("learnt destination = %s , sending to port %d"%(pkt.ip4Dst,v))
+                    set_port.append(SetPort(v))  # TODO Check for Broadcast Port
             elif k == "ip4Dst_out":
                 actions.append(SetIP4Dst(v))
             elif k == "ip4Src_out":
@@ -221,6 +240,7 @@ class RepeaterApp(frenetic.App):
 
         self.pkt_out(dpid, payload, Seq(actions + set_port))
         ActiveSVs.update(action)
+        ActiveSSVs.update(action,indices)
 
 
 app = RepeaterApp()

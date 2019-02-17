@@ -7,6 +7,10 @@ def get_fv_value_mapping(fvs, pkt):
     return MapFVValue(fvs, pkt)
 
 class Macro(object):
+    def get_fv_value_mapping(self,pkt):
+        return MapFVValue(self.fvs, pkt)
+
+
     pass
 
 
@@ -14,6 +18,7 @@ class Invariant(Macro):
     def __init__(self, expr):
         self.expr = expr
         self.fvs = self.expr.collect_fv_input_mapping()
+        print "collected fvs = ",self.fvs.mapping
 
     def apply(self, pkt):
         conf = MapFVValue(self.fvs,pkt)
@@ -69,23 +74,23 @@ class Reaction(Macro):
         self.start = start
         self.policy = policy
         self.end = end
-        self.binding = self.start.collect_fv_input_mapping()
+        self.fvs = self.start.collect_fv_input_mapping()
         policy_binding = policy.collect_fv_input_mapping()
         end_binding = end.collect_fv_input_mapping()
 
-        for k in policy_binding.binding.keys():
-            if k not in self.binding.binding.keys():
+        for k in policy_binding.mapping.keys():
+            if k not in self.fvs.mapping.keys():
                 raise Exception("Free Variable not bounded %s " % k)
 
-        for k in end_binding.binding.keys():
-            if k not in self.binding.binding.keys():
+        for k in end_binding.mapping.keys():
+            if k not in self.fvs.mapping.keys():
                 raise Exception("Free Variable not bounded %s " % k)
 
         self.policy_binding = policy_binding
         self.end_binging = end_binding
 
     def get_actions(self, pkt):
-        conf = MapFVValue(self.binding, pkt)
+        conf = MapFVValue(self.fvs, pkt)
         match = self.policy.left.instantiate_fvs(conf).apply(pkt)
         action = self.policy.right.instantiate_fvs(conf).apply(pkt)
         ands = match

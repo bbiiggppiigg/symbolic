@@ -1,7 +1,7 @@
 import copy
 
 from macros.types import IPAddr, Mac, Vlan, PriorityCode, IPProto, Port, TCPPort, EthType, Value
-from macros.variables import Input, StateVar, SymbolicStateVar
+from macros.variables import Input, StateVar, SymbolicStateVar , Output , FreeVariable
 
 
 class Packet(object):
@@ -39,45 +39,47 @@ class Packet(object):
 
 class MapInputValue(object):
 
-    def __init__(self, pkt, port_id, state_vars_dict):
-        self.binding = dict()
+    def __init__(self, pkt, port_id, state_vars_dict ,symbolic_state_vars_dict ):
+        self.mapping = dict()
         if pkt is not None:
-            self.binding[Input('ethSrc')] = Mac(pkt.ethSrc)
-            self.binding[Input('ethDst')] = Mac(pkt.ethDst)
-            self.binding[Input('ethType')] = EthType(pkt.ethType)
-            self.binding[Input('port_id')] = Port(port_id)
+            self.mapping[Input('ethSrc')] = Mac(pkt.ethSrc)
+            self.mapping[Input('ethDst')] = Mac(pkt.ethDst)
+            self.mapping[Input('ethType')] = EthType(pkt.ethType)
+            self.mapping[Input('port_id')] = Port(port_id)
             if pkt.vlan is not None:
-                self.binding[Input('vlan')] = Vlan(pkt.vlan)
-                self.binding[Input('vlanPcp')] = PriorityCode(pkt.vlanPcp)
+                self.mapping[Input('vlan')] = Vlan(pkt.vlan)
+                self.mapping[Input('vlanPcp')] = PriorityCode(pkt.vlanPcp)
 
             if pkt.ip4Src is not None:
-                self.binding[Input('ip4Src')] = IPAddr(pkt.ip4Src)
-                self.binding[Input('ip4Dst')] = IPAddr(pkt.ip4Dst)
-                self.binding[Input('ipProto')] = IPProto(pkt.ipProto)
+                self.mapping[Input('ip4Src')] = IPAddr(pkt.ip4Src)
+                self.mapping[Input('ip4Dst')] = IPAddr(pkt.ip4Dst)
+                self.mapping[Input('ipProto')] = IPProto(pkt.ipProto)
 
             if pkt.tcpSrcPort is not None:
-                self.binding[Input('tcpSrcPort')] = TCPPort(pkt.tcpSrcPort)
-                self.binding[Input('tcpSrcPort')] = TCPPort(pkt.tcpDstPort)
+                self.mapping[Input('tcpSrcPort')] = TCPPort(pkt.tcpSrcPort)
+                self.mapping[Input('tcpSrcPort')] = TCPPort(pkt.tcpDstPort)
 
         self.state_vars_dict = state_vars_dict
-        state_var_list = list(self.state_vars_dict.values())
-        for _, sv in state_var_list:
-            self.binding[Input(sv.name)] = sv.vartype(sv.value)
+        for _, sv in state_vars_dict.items():
+            self.mapping[Input(sv.name)] = sv.vartype(sv.value)
+        self.symbolic_state_vars_dict = symbolic_state_vars_dict
 
     def apply(self, expr):
         if isinstance(expr, Input):
             if expr.is_symbolic:
-                expr.fv
+                ssv = self.symbolic_state_vars_dict[expr.name]
+                return expr.type(ssv.get(expr.fv))
             else:
-                assert expr in self.binding
-                return self.binding[expr]
+                assert expr in self.mapping
+                return self.mapping[expr]
         if isinstance(expr, StateVar):
             assert expr.name in self.state_vars_dict
             sv = self.state_vars_dict[expr.name]
             return sv.vartype[sv.value]
-        if isinstance(expr, SymbolicStateVar):
+        if isinstance(expr,Output) and expr.is_symbolic:
+            print "qqqqq",expr.fv 
             pass
-
+        return expr
 
 """
     A dictionary from free variables to their corresponding input variable
@@ -93,7 +95,7 @@ class MapFVInput(object):
 
     def __add__(self, other):
         ret = copy.deepcopy(self)
-        for key, value in other.binding.items():
+        for key, value in other.mapping.items():
             if key in ret.mapping:
                 if ret.mapping[key] != value:
                     raise Exception("Binding Single Free Variable to Multiple Variable")
@@ -207,3 +209,15 @@ class MapFVValue(object):
 
     def __hash__(self):
         return self.mapping.__hash__()
+    
+    def instantiate(self, var):
+        print ("my mapping ",self.mapping)
+        if isinstance(var,Input):
+            if var.is_symbolic:
+                return Input(var.name,self.mapping[var.fv])
+        elif isinstance(var,Output):
+            if var.is_symbolic:
+                return Output(var.name,self.mapping[var.fv])
+        elif isinstance(var,FreeVariable):
+            return self.mapping[var]
+        return var
