@@ -4,9 +4,11 @@ from macros.binding import Filter
 from macros.exceptions import InvalidRangeException, UnsatisfiableAssignmentException, UnsatisfiableActionException
 from macros.variables import Output
 
+
 class Range(object):
 
     def __init__(self, min_value, max_value, care=True):
+        # type : (int,int,bool) -> None
         if min_value > max_value:
             raise InvalidRangeException
 
@@ -16,12 +18,14 @@ class Range(object):
         self.concrete = set(range(min_value, max_value + 1))
 
     def __mul__(self, other):
+        # type : ( Range ) -> Range
         new_min = self.min_value if self.min_value > other.min_value else other.min_value
         new_max = self.max_value if self.max_value < other.max_value else other.max_value
 
         return Range(new_min, new_max, self.care or other.care)
 
     def __imul__(self, other):
+        # type : Range -> None
         new_min = self.min_value if self.min_value > other.min_value else other.min_value
         new_max = self.max_value if self.max_value < other.max_value else other.max_value
         self.min_value = new_min
@@ -30,27 +34,28 @@ class Range(object):
         self.concrete = set(range(self.min_value, self.max_value + 1))
 
     def __repr__(self):
+        # type : () -> str
         return "[%d,%d]" % (self.min_value, self.max_value)
 
     def get_action(self):
         # return random.randrange(self.min_value, self.max_value + 1)
-        print self.concrete
+        print(self.concrete)
         return random.choice(tuple(self.concrete))
 
-
     def filter_output(self, values):
+        # type : (Set(Values))-> Set(Values)
         ret = self.concrete.intersection(values)
 
-        print "after filter",self.concrete 
+        print("after filter", self.concrete)
         if ret == set():
             raise InvalidRangeException
         return ret
 
 
+"""
 class FilteredRange(object):
 
     def __init__(self, concrete):
-
         self.concrete = concrete
 
     def __mul__(self, other):
@@ -66,27 +71,26 @@ class FilteredRange(object):
         # return random.randrange(self.min_value, self.max_value + 1)
         return random.choice(tuple(self.concrete.intersection(values)))
 
-
-
     def filter_output(self, values):
         ret = self.concrete.intersection(values)
         if ret == set():
             raise InvalidRangeException
         return ret
+"""
 
 
 # Port = [[1,3] | [4,6] | [7,9]  ]
 
-class OutputAssignment(object):
-    
+class Assignment(object):
+
     def get_filter(self):
         denied = set()
         for myrange in self.ranges:
             denied = denied.union(myrange.concrete)
-        universe = set(range(Output.builtin[self.left.name].min_value,Output.builtin[self.left.name].max_value+1))
-        allowed  =  universe- denied
+        universe = set(range(Output.builtin[self.left.name].min_value, Output.builtin[self.left.name].max_value + 1))
+        allowed = universe - denied
         ret = dict()
-        ret[self.left]=allowed
+        ret[self.left] = allowed
         return Filter(ret)
 
     def __init__(self, left, right):
@@ -107,11 +111,11 @@ class OutputAssignment(object):
                 continue
         if len(ret) == 0:
             raise UnsatisfiableAssignmentException
-        
-        return OutputAssignment(self.left,ret)
+
+        return Assignment(self.left, ret)
 
     def get_action(self):
-        #print self.ranges[0].get_action()
+        # print self.ranges[0].get_action()
         return Output.builtin[self.left.name].to_output(random.choice(self.ranges).get_action())
 
     def __mul__(self, other):
@@ -130,7 +134,7 @@ class OutputAssignment(object):
         if len(ret) == 0:
             raise UnsatisfiableAssignmentException
 
-        return OutputAssignment(self.left, ret)
+        return Assignment(self.left, ret)
 
     def __imul__(self, other):
         if self.left.name != other.left.name:
@@ -150,7 +154,7 @@ class OutputAssignment(object):
 
     def __repr__(self):
         if self.left.is_symbolic:
-            return " %s[%s]  =  %s " % (self.left.name,self.left.fv.__repr__(), self.ranges)
+            return " %s[%s]  =  %s " % (self.left.name, self.left.fv.__repr__(), self.ranges)
         return " %s  =  %s " % (self.left.name, self.ranges)
 
 
@@ -160,49 +164,14 @@ class OutputAssignment(object):
 """
 
 
-class OutputAssignments(object):
+class OutputAction(object):
     default_list = dict()
 
-    def get_filter(self):
-        assert (len(self.assignment_dict.keys()) == 1)
-        return self.assignment_dict[self.assignment_dict.keys()[0]].get_filter()
-
-    def filter_output(self, action_filter):
-        ret = list() 
-        for key, value in self.assignment_dict.items():
-            try:
-                if key in action_filter.binding:
-                    ret.append(value.filter_output(action_filter.binding[key]))
-                else:
-                    ret.append(value)
-            except UnsatisfiableAssignmentException:
-                raise UnsatisfiableActionException
-
-        return OutputAssignments(ret)
-    # ey: str
-    # alue: Variable
-
-    # for key, value in Input.builtin.items():
-    #    default_list[key] = Range(value.min_value, value.max_value, False)
-
-    def get_action(self):
-        # print "calling get action in oas "
-        ret = dict()
-        # print self.assignment_dict
-        for out, assign in self.assignment_dict.items():
-            ret[out.name] = assign.get_action()
-        
-        indices = dict()
-        for out in self.assignment_dict.keys():
-            if out.is_symbolic:
-               indices[out.name] = out.fv
-        return ret , indices
-
-    def __init__(self, assignment_list):
-
+    def __init__(self, assignment_list, trace=[], output_filter=None):
+        # type: (List[Assignment], List[OutputAction], Filter) -> None
         satisfiable = True
-        # print("assignment lists = ", assignment_list)
         bool_consts = filter(lambda x: type(x) == bool, assignment_list)
+        self.trace = trace
 
         for bool_const in bool_consts:
             satisfiable &= bool_const
@@ -223,7 +192,52 @@ class OutputAssignments(object):
                 raise UnsatisfiableActionException
 
         self.assignment_dict = res
+        self.output_filter = output_filter
         # print(self.assignment_dict)
+
+    def is_true(self):
+        return self.assignment_dict == dict()
+
+    def associate(self, trace):
+        if self.trace is None:
+            self.trace = []
+        self.trace += trace
+
+    def get_filter(self):
+        assert (len(self.assignment_dict.keys()) == 1)
+        return self.assignment_dict[self.assignment_dict.keys()[0]].get_filter()
+
+    def filter_output(self, action_filter):
+        ret = list()
+        for key, value in self.assignment_dict.items():
+            try:
+                if key in action_filter.binding:
+                    ret.append(value.filter_output(action_filter.binding[key]))
+                else:
+                    ret.append(value)
+            except UnsatisfiableAssignmentException:
+                raise UnsatisfiableActionException
+
+        return OutputAction(ret)
+
+    # key: str
+    # value: Variable
+
+    # for key, value in Input.builtin.items():
+    #    default_list[key] = Range(value.min_value, value.max_value, False)
+
+    def get_action(self):
+        # print "calling get action in oas "
+        ret = dict()
+        # print self.assignment_dict
+        for out, assign in self.assignment_dict.items():
+            ret[out.name] = assign.get_action()
+
+        indices = dict()
+        for out in self.assignment_dict.keys():
+            if out.is_symbolic:
+                indices[out.name] = out.fv
+        return ret, indices, self.trace
 
     """
         Assume no duplicate range for same input
@@ -231,25 +245,33 @@ class OutputAssignments(object):
 
     def __mul__(self, other):
         ret = dict()
+        if self.output_filter is not None:
+            if other.output_filter is not None:
+                return OutputAction([], self.trace + other.trace, self.output_filter + other.output_filter)
+            else:
+                return other.filter_output(self.output_filter)
+        else:
+            if other.output_filter is not None:
+                return self.filter_output(other.output_filter)
+            else:
+                try:
+                    for my_output, my_assign in self.assignment_dict.items():
+                        ret[my_output] = my_assign
 
-        try:
-            for my_output, my_assign in self.assignment_dict.items():
-                ret[my_output] = my_assign
+                    for its_output, its_assign in other.assignment_dict.items():
+                        if its_output in ret:
+                            # print("Case 1")
+                            # print(ret[its_output], its_assign)
+                            ret[its_output] = ret[its_output] * its_assign
+                            # print(ret[its_output])
+                        else:
+                            # print("Case 2")
+                            ret[its_output] = its_assign
+                except UnsatisfiableAssignmentException:
+                    # print("QQ")
+                    raise UnsatisfiableActionException
 
-            for its_output, its_assign in other.assignment_dict.items():
-                if its_output in ret:
-                    # print("Case 1")
-                    # print(ret[its_output], its_assign)
-                    ret[its_output] = ret[its_output] * its_assign
-                    # print(ret[its_output])
-                else:
-                    # print("Case 2")
-                    ret[its_output] = its_assign
-        except UnsatisfiableAssignmentException:
-            # print("QQ")
-            raise UnsatisfiableActionException
-
-        return OutputAssignments(list(ret.values()))
+                return OutputAction(list(ret.values()), self.trace + other.trace)
 
     def __repr__(self):
         if self.assignment_dict:
@@ -263,13 +285,13 @@ pass
 class OutputActionList(object):
 
     def get_filter(self):
-        assert (len(self.assignment_list)==1)
+        assert (len(self.assignment_list) == 1)
         return self.assignment_list[0].get_filter()
 
     def filter_output(self, action_filter):
         if self.unsat:
             return self
-        if len(self.assignment_list) ==0 :
+        if len(self.assignment_list) == 0:
             return self
 
         ret = []
@@ -292,8 +314,7 @@ class OutputActionList(object):
         # return port assignment (if presents) as well as other actions
         assert (self.unsat is False)
 
-        print
-        "my assign list ", self.assignment_list
+        print("my assign list ", self.assignment_list)
         if len(self.assignment_list) == 0:
             return dict()
         return random.choice(self.assignment_list).get_action()
@@ -306,7 +327,7 @@ class OutputActionList(object):
     def __mul__(self, other):
         mine = self.assignment_list
         its = other.assignment_list
-        print "mutiplying two", mine , its
+        print("mutiplying two", mine, its)
         ret = []
         if self.unsat or other.unsat:
             return OutputActionList([], True)

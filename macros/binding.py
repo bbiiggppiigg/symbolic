@@ -1,7 +1,7 @@
 import copy
 
 from macros.types import IPAddr, Mac, Vlan, PriorityCode, IPProto, Port, TCPPort, EthType, Value
-from macros.variables import Input, StateVar, SymbolicStateVar , Output , FreeVariable
+from macros.variables import Input, StateVar, Output, FreeVariable
 
 
 class Packet(object):
@@ -77,7 +77,7 @@ class MapInputValue(object):
             sv = self.state_vars_dict[expr.name]
             return sv.vartype[sv.value]
         if isinstance(expr,Output) and expr.is_symbolic:
-            print "qqqqq",expr.fv 
+            print("qqqqq", expr.fv)
             pass
         return expr
 

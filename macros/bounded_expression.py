@@ -1,8 +1,10 @@
-from macros.actions import OutputAssignment, OutputAssignments, Range, OutputActionList
-from macros.binding import Filter
+from typing import Union, List
+
+from macros.actions import Assignment, OutputAction, Range, OutputActionList
+from macros.binding import Filter, MapInputValue
 from macros.exceptions import UnsatisfiableAssignmentException, UnsatisfiableActionException
 from macros.types import Value, Bool
-from macros.variables import Output, Input
+from macros.variables import Output
 
 """
     What should apply returns ?
@@ -17,12 +19,17 @@ class BoundedExpr(object):
 
 class BoundedPredicate(BoundedExpr):
     def apply(self, pkt):
-        raise NotImplementedError;
+        # type: (MapInputValue) -> Union[Bool,Assignment]
+        raise NotImplementedError
 
     def get_filter(self):
         if isinstance(self.left, Output):
             return Filter({self.left: self.right})
         return Filter({})
+
+    def get_range(self):
+        # type: () -> List[Range]
+        raise NotImplementedError
 
 
 class BoundedLEQ(BoundedPredicate):
@@ -30,6 +37,9 @@ class BoundedLEQ(BoundedPredicate):
     def __init__(self, left, right):
         self.left = left
         self.right = right
+
+    def negate(self):
+        return BoundedGT(self.left, self.right)
 
     def get_range(self):
         if isinstance(self.left, Value):  # 3 <= X
@@ -42,15 +52,11 @@ class BoundedLEQ(BoundedPredicate):
         return "(%s  >  %s)" % (self.left.__repr__(), self.right.__repr__())
 
     def apply(self, pkt):
-        left = self.left
-        right = self.right
-        if left in pkt.binding.keys():
-            left = pkt.binding[left]
-        if right in pkt.binding.keys():
-            right = pkt.binding[right]
+        left = pkt.apply(self.left)
+        right = pkt.apply(self.right)
 
         if isinstance(left, Output) and isinstance(right, Value):
-            return OutputAssignment(left, self.get_range())
+            return Assignment(left, self.get_range())
         elif isinstance(left, Value) and isinstance(right, Value):
             return left.get_value() > right.get_value()
         else:
@@ -63,6 +69,9 @@ class BoundedGEQ(BoundedPredicate):
         self.left = left
         self.right = right
 
+    def negate(self):
+        return BoundedLT(self.left, self.right)
+
     def get_range(self):
         if isinstance(self.left, Value):  # 3 >= X
             return [Range(self.left.min_value, self.left.get_value())]
@@ -74,16 +83,10 @@ class BoundedGEQ(BoundedPredicate):
         return "(%s  >  %s)" % (self.left.__repr__(), self.right.__repr__())
 
     def apply(self, pkt):
-        left = self.left
-        right = self.right
-        if left in pkt.binding.keys():
-            left = pkt.binding[left]
-        if right in pkt.binding.keys():
-            right = pkt.binding[right]
         left = pkt.apply(self.left)
         right = pkt.apply(self.right)
         if isinstance(left, Output) and isinstance(right, Value):
-            return OutputAssignment(left, self.get_range())
+            return Assignment(left, self.get_range())
         elif isinstance(left, Value) and isinstance(right, Value):
             return left.get_value() > right.get_value()
         else:
@@ -96,6 +99,9 @@ class BoundedGT(BoundedPredicate):
         self.left = left
         self.right = right
 
+    def negate(self):
+        return BoundedLEQ(self.left, self.right)
+
     def get_range(self):
         if isinstance(self.left, Value):  # 3 > X
             return [Range(self.left.min_value, self.left.get_value() - 1)]
@@ -107,15 +113,11 @@ class BoundedGT(BoundedPredicate):
         return "(%s  >  %s)" % (self.left.__repr__(), self.right.__repr__())
 
     def apply(self, pkt):
-        left = self.left
-        right = self.right
-        if left in pkt.binding.keys():
-            left = pkt.binding[left]
-        if right in pkt.binding.keys():
-            right = pkt.binding[right]
-
+        # type:(MapInputValue) -> Union[Assignment,bool]
+        left = pkt.apply(self.left)
+        right = pkt.apply(self.right)
         if isinstance(left, Output) and isinstance(right, Value):
-            return OutputAssignment(left, self.get_range())
+            return Assignment(left, self.get_range())
         elif isinstance(left, Value) and isinstance(right, Value):
             return left.get_value() > right.get_value()
         else:
@@ -130,7 +132,11 @@ class BoundedLT(BoundedPredicate):
         self.left = left
         self.right = right
 
+    def negate(self):
+        return BoundedGEQ(self.left, self.right)
+
     def get_range(self):
+        # type:() -> List[Range]
         if isinstance(self.left, Value):  # 3 < X
             return [Range(self.left.get_value() + 1, self.left.max_value)]
         if isinstance(self.right, Value):  # X < 3
@@ -138,15 +144,12 @@ class BoundedLT(BoundedPredicate):
         raise Exception("Shouldn't Reach")
 
     def apply(self, pkt):
-        left = self.left
-        right = self.right
-        if left in pkt.binding.keys():
-            left = pkt.binding[left]
-        if right in pkt.binding.keys():
-            right = pkt.binding[right]
+        # type: (MapInputValue) -> Union[Assignment,bool]
 
+        left = pkt.apply(self.left)
+        right = pkt.apply(self.right)
         if isinstance(left, Output) and isinstance(right, Value):
-            return OutputAssignment(left, self.get_range())
+            return Assignment(left, self.get_range())
         elif isinstance(left, Value) and isinstance(right, Value):
             return left.get_value() < right.get_value()
         else:
@@ -161,17 +164,21 @@ class BoundedEQ(BoundedPredicate):
         self.left = left
         self.right = right
 
+    def negate(self):
+        return BoundedNEQ(self.left, self.right)
+
     def __repr__(self):
         return "( %s == %s )" % (self.left, self.right)
 
     def get_range(self):
+        # type:() -> List[Range]
         return [Range(self.right.get_value(), self.right.get_value())]
 
     def apply(self, pkt):
-
+        # type:(MapInputValue) -> Union[Assignment,bool]
         left = pkt.apply(self.left)
         right = pkt.apply(self.right)
-        
+
         # print("haha %s == %s" % (left, right))
         # print pkt.binding.keys()
         """
@@ -182,7 +189,7 @@ class BoundedEQ(BoundedPredicate):
         """
         # print("haha %s == %s" % (left, right))
         if isinstance(left, Output) and isinstance(right, Value):
-            return OutputAssignment(left, self.get_range())
+            return Assignment(left, self.get_range())
         elif isinstance(left, Value) and isinstance(right, Value):
             # print(left.get_value(), " ", right.get_value())
             return left.get_value() == right.get_value()
@@ -203,23 +210,25 @@ class BoundedNEQ(BoundedPredicate):
         self.right = right
 
     def get_range(self):
+        # type:() -> List[Range]
         return [Range(self.right.min_value, self.right.get_value() - 1),
                 Range(self.right.get_value() + 1, self.right.max_value)]
 
     def apply(self, pkt):
-        left = self.left
-        right = self.right
-        if left in pkt.binding.keys():
-            left = pkt.binding[left]
-        if right in pkt.binding.keys():
-            right = pkt.binding[right]
+        # type:(MapInputValue) -> Union[Assignment,bool]
+
+        left = pkt.apply(self.left)
+        right = pkt.apply(self.right)
         # print(type(right), right)
         if isinstance(left, Output) and isinstance(right, Value):
-            return OutputAssignment(left, self.get_range())
+            return Assignment(left, self.get_range())
         elif isinstance(left, Value) and isinstance(right, Value):
             return left.get_value() != right.get_value()
         else:
             raise Exception("Shouldn't reach here")
+
+    def negate(self):
+        return BoundedEQ(self.left, self.right)
 
     pass
 
@@ -257,6 +266,31 @@ class BoundedMatch(BoundedExpr):
         return "".join(map(lambda x: x.__repr__(), self.expr_list))
 
 
+class BoundedAnd(BoundedExpr):
+
+    def __init__(self, bplist, index=-1):
+        # type:(List[BoundedPredicate],int) -> None
+        self.bplist = bplist
+        self.index = index
+
+    def __repr__(self):
+        return "".join(map(lambda x: x.__repr__(), self.bplist))
+
+    def apply(self, pkt):
+        try:
+            ret = list(
+                map(lambda x: x.apply(pkt), self.bplist)
+            )
+            return OutputAction(ret)
+        except UnsatisfiableAssignmentException:
+            raise UnsatisfiableActionException
+
+    def get_filter(self):
+        # type:() -> Filter
+        assert self.index < len(self.bplist)
+        return self.bplist[self.index].get_filter()
+
+
 """
     Action should be a OR of ANDs, in DNF 
     (A & B & C)     
@@ -276,7 +310,7 @@ class BoundedAction(BoundedExpr):
             ret = list(
                 map(lambda x: x.apply(pkt), self.assign_list)
             )
-            return OutputAssignments(ret)
+            return OutputAction(ret)
         except UnsatisfiableAssignmentException:
             raise UnsatisfiableActionException
 
@@ -298,7 +332,7 @@ class BoundedGuard(BoundedExpr):
             ret = list(
                 map(lambda x: x.apply(pkt), self.assign_list)
             )
-            return OutputActionList([OutputAssignments(ret)])
+            return OutputActionList([OutputAction(ret)])
         except UnsatisfiableAssignmentException:
             raise UnsatisfiableActionException
 
@@ -306,13 +340,16 @@ class BoundedGuard(BoundedExpr):
 class BoundedActionList(BoundedExpr):
 
     def __init__(self, action_list):
+        # type: (List[BoundedAction]) -> None
         self.action_list = action_list
 
     def get_filter(self):
+        # type: () -> Filter
         assert len(self.action_list) == 1
         return self.action_list[0].get_filter()
 
     def apply(self, pkt):
+        # type: (MapInputValue) -> OutputActionList
         ret = []
         for action in self.action_list:
             try:
@@ -329,14 +366,14 @@ class BoundedActionList(BoundedExpr):
 
 
 class BoundedImplies(BoundedExpr):
-    # eft: BoundedMatch
-    # ight: BoundedActionList
 
     def __init__(self, left, right):
+        # type:(BoundedMatch,BoundedActionList) -> None
         self.left = left
         self.right = right
 
     def apply(self, pkt):
+        # type:(MapInputValue) -> Union[Bool,OutputActionList]
         # print "bounded implies", self.left , self.right
         # print "left true ? ",self.left.apply(pkt)
         if self.left.apply(pkt):
