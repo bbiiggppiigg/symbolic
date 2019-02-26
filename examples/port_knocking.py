@@ -1,4 +1,4 @@
-from macros.expression import Implies, Match, ActionList, EQ, Action, And
+from macros.expression import Implies, Match, ActionList, EQ, Action, And, NEQ
 from macros.macro import Reaction, PrecedenceFactory
 from macros.types import IPAddr, Port
 from macros.variables import Input, Output
@@ -92,27 +92,53 @@ react2 = Reaction(
         ]
     )
 )
-
-PrecedenceFactory.get_instance().insert(
-    And(
-        [EQ(Input("ip4Src"), IPAddr("10.0.0.3"))]
+#pf  = PrecedenceFactory.get_instance()
+plist = [ (
+     And(
+        [
+            EQ(Input("ip4Src"), IPAddr("10.0.0.1")),  
+            NEQ(Output("port_id_out"), Port(0))
+        ]
     ),
-    And([
-        EQ(Input("ip4Src"), IPAddr("10.0.0.1")),
-        EQ(Output("port_id_out"), Port(2))
-    ]
+    And(
+        [
+            EQ(Input("ip4Src"), IPAddr("10.0.0.2")),
+            NEQ(Output("port_id_out"), Port(0))
+        ]
+    )
+   
+    )] 
+
+"""
+pf.insert(
+    And(
+        [
+            EQ(Input("ip4Src"), IPAddr("10.0.0.1")),  
+            NEQ(Output("port_id_out"), Port(0))
+        ]
+    ),
+    And(
+        [
+            EQ(Input("ip4Src"), IPAddr("10.0.0.2")),
+            NEQ(Output("port_id_out"), Port(0))
+        ]
     )
 )
-PrecedenceFactory.get_instance().insert(
+
+pf.insert(
     And(
-        [EQ(Input("ip4Src"), IPAddr("10.0.0.3"))]
+        [
+            EQ(Input("ip4Src"), IPAddr("10.0.0.2")),  
+            NEQ(Output("port_id_out"), Port(0))
+        ]
     ),
-    And([
-        EQ(Input("ip4Src"), IPAddr("10.0.0.2")),
-        EQ(Output("port_id_out"), Port(1))
-    ]
+    And(
+        [
+            EQ(Input("ip4Src"), IPAddr("10.0.0.3")),
+            NEQ(Output("port_id_out"), Port(0))
+        ]
     )
 )
-
+"""
 reactions.append(react1)
 reactions.append(react2)

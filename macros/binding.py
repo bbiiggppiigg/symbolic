@@ -190,7 +190,8 @@ class MapFVValue(object):
 
     def __init__(self, fv_to_input_var, pkt):
         self.mapping = dict()
-
+        if fv_to_input_var is None or pkt is None:
+            return
         for fv, input_var in fv_to_input_var.mapping.items():
 
             if input_var not in pkt.mapping:
@@ -208,10 +209,12 @@ class MapFVValue(object):
         return self.mapping == other.mapping
 
     def __hash__(self):
+        if self.mapping == dict():
+            return 0
         return self.mapping.__hash__()
     
     def instantiate(self, var):
-        print ("my mapping ",self.mapping)
+        #print ("my mapping ",self.mapping)
         if isinstance(var,Input):
             if var.is_symbolic:
                 return Input(var.name,self.mapping[var.fv])

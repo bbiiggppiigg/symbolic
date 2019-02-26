@@ -206,14 +206,24 @@ class BoundedEQ(BoundedPredicate):
 class BoundedNEQ(BoundedPredicate):
 
     def __init__(self, left, right):
+        
         self.left = left
         self.right = right
+        print self
 
     def get_range(self):
         # type:() -> List[Range]
-        return [Range(self.right.min_value, self.right.get_value() - 1),
-                Range(self.right.get_value() + 1, self.right.max_value)]
-
+        try:
+            r1 = [Range(self.right.min_value, self.right.get_value() - 1)]
+        except:
+            r1 = []
+        try:
+            r2 = [Range(self.right.get_value() + 1, self.right.max_value)]
+        except:
+            r2 = []
+        if r1 + r2 == []:
+            Range(1,-1)
+        return r1 + r2
     def apply(self, pkt):
         # type:(MapInputValue) -> Union[Assignment,bool]
 
@@ -230,6 +240,8 @@ class BoundedNEQ(BoundedPredicate):
     def negate(self):
         return BoundedEQ(self.left, self.right)
 
+    def __repr__(self):
+        return "BoundedNEQ( %s , %s )"  % (self.left.__repr__() , self.right.__repr__()) 
     pass
 
 

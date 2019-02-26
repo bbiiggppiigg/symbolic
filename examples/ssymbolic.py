@@ -81,12 +81,10 @@ react1 = Reaction(
         )
     )
     ,
-    Match([EQ(Input("ip4Src"), IPAddr("10.0.0.3"))])
+    Match([EQ(Input("ip4Src"), IPAddr("10.0.0.255"))])
 )
 
 invariants.append(tt)
 invariants.append(tt2)
 
 reactions.append(react1)
-ActivePrecedences = PrecedenceFactory.get_instance()
-ActivePrecedences.insert()

@@ -9,7 +9,9 @@ class Range(object):
 
     def __init__(self, min_value, max_value, care=True):
         # type : (int,int,bool) -> None
+        
         if min_value > max_value:
+            print (" min_value = %d , max_value = %d" % (min_value,max_value) )
             raise InvalidRangeException
 
         self.min_value = min_value
@@ -167,7 +169,7 @@ class Assignment(object):
 class OutputAction(object):
     default_list = dict()
 
-    def __init__(self, assignment_list, trace=[], output_filter=None):
+    def __init__(self, assignment_list, trace=[], output_filter=Filter({})):
         # type: (List[Assignment], List[OutputAction], Filter) -> None
         satisfiable = True
         bool_consts = filter(lambda x: type(x) == bool, assignment_list)
@@ -243,7 +245,31 @@ class OutputAction(object):
         Assume no duplicate range for same input
     """
 
+    def combine_actions(self,other):
+        ret = dict()
+        for my_output, my_assign in self.assignment_dict.items():
+            ret[my_output] = my_assign
+
+        for its_output, its_assign in other.assignment_dict.items():
+            if its_output in ret:
+                # print("Case 1")
+                # print(ret[its_output], its_assign)
+                ret[its_output] = ret[its_output] * its_assign
+                # print(ret[its_output])
+            else:
+                # print("Case 2")
+                ret[its_output] = its_assign
+        return ret
+
+
     def __mul__(self, other):
+        try:
+            combined_actions = self.combine_actions(other)
+        except UnsatisfiableAssignmentException:
+            raise UnsatisfiableActionException
+
+        return OutputAction(list(combined_actions.values()), self.trace + other.trace, self.output_filter * other.output_filter)
+        """
         ret = dict()
         if self.output_filter is not None:
             if other.output_filter is not None:
@@ -272,7 +298,7 @@ class OutputAction(object):
                     raise UnsatisfiableActionException
 
                 return OutputAction(list(ret.values()), self.trace + other.trace)
-
+        """
     def __repr__(self):
         if self.assignment_dict:
             return "(%s) " % (self.assignment_dict)
@@ -307,7 +333,7 @@ class OutputActionList(object):
         return OutputActionList(ret, unsat)
 
     def __init__(self, assignment_list, unsat=False):
-        self.assignment_list = assignment_list
+        self.assignment_list = filter( lambda x : x is not None , assignment_list)
         self.unsat = unsat
 
     def get_action(self):
@@ -316,7 +342,7 @@ class OutputActionList(object):
 
         print("my assign list ", self.assignment_list)
         if len(self.assignment_list) == 0:
-            return dict()
+            return dict(), dict() , list()
         return random.choice(self.assignment_list).get_action()
 
     def __repr__(self):
@@ -327,14 +353,14 @@ class OutputActionList(object):
     def __mul__(self, other):
         mine = self.assignment_list
         its = other.assignment_list
-        print("mutiplying two", mine, its)
+        print("multiplying two", mine, its)
         ret = []
         if self.unsat or other.unsat:
             return OutputActionList([], True)
         if len(mine) == 0:
             return OutputActionList(its, other.unsat)
         if len(its) == 0:
-            return OutputActionList(mine, mine.unsat)
+            return OutputActionList(mine, self.unsat)
         unsat = True
         for my in mine:
             for it in its:
